@@ -11,7 +11,12 @@ export default function HomePage() {
               <h1 className="text-xl font-semibold text-primary-900">Nathan Eichert</h1>
             </div>
             <div className="flex items-center space-x-4">
-              {/* Navigation items can be added here */}
+              <Link
+                href="/resume"
+                className="text-sm font-semibold leading-6 text-primary-900 hover:text-primary-600 transition-colors"
+              >
+                Resume
+              </Link>
             </div>
           </div>
         </div>
