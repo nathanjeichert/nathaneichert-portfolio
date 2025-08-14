@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Coopers AI</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Coopers AI</h1>
+            <p>Access Required</p>
+        </div>
+    </header>
+    
+    <main>
+        <div class="container">
+            <div class="card login-form">
+                <h2>Enter Password</h2>
+                <script>
+                    const urlParams = new URLSearchParams(window.location.search);
+                    if (urlParams.get('error')) {
+                        document.write('<div class="error">Incorrect password. Please try again.</div>');
+                    }
+                </script>
+                <form method="POST" action="/coopers/login">
+                    <input type="password" name="password" placeholder="Password" required autofocus>
+                    <button type="submit" class="btn" style="width: 100%;">Access Coopers AI</button>
+                </form>
+                <p style="margin-top: 1rem; text-align: center;">
+                    <a href="/" style="color: #667eea;">← Back to Portfolio</a>
+                </p>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
