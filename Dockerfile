@@ -1,28 +1,43 @@
 # Use official Node.js runtime as base image
-FROM node:18-alpine
+FROM node:18-alpine AS base
 
-# Set working directory in container
+# Install dependencies only when needed
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Install dependencies based on the preferred package manager
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev
 
-# Install dependencies
-RUN npm install --omit=dev
-
-# Copy application code
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodeuser -u 1001
+# Build Next.js app
+RUN npm run build
 
-# Change ownership of app directory
-RUN chown -R nodeuser:nodejs /app
-USER nodeuser
+# Production image, copy all the files and run next
+FROM base AS runner
+WORKDIR /app
 
-# Expose port (Cloud Run will set PORT env variable)
-EXPOSE 8080
+ENV NODE_ENV production
 
-# Start the application
-CMD ["npm", "start"]
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy the standalone output
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
+EXPOSE 3000
+
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
+
+CMD ["node", "server.js"]
