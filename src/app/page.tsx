@@ -17,6 +17,12 @@ export default function HomePage() {
               >
                 Resume
               </Link>
+              <Link
+                href="/projects"
+                className="text-sm font-semibold leading-6 text-primary-900 hover:text-primary-600 transition-colors"
+              >
+                Projects
+              </Link>
             </div>
           </div>
         </div>
