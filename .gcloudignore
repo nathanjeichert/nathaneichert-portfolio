@@ -1,0 +1,25 @@
+# Git files
+.git
+.gitignore
+
+# Node.js
+node_modules/
+
+# Development files
+.env
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# GitHub Actions (not needed for Cloud Build)
+.github/
+
+# Local deployment script
+deploy.sh
