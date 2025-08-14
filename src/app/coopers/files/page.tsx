@@ -12,15 +12,7 @@ export default async function FilesPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Link href="/" className="text-xl font-semibold text-primary-900 hover:text-primary-700 transition-colors">
-                Nathan Eichert
-              </Link>
-              <span className="ml-2 text-primary-400">/</span>
-              <Link href="/coopers" className="ml-2 text-lg font-medium text-primary-600 hover:text-primary-700 transition-colors">
-                Coopers AI
-              </Link>
-              <span className="ml-2 text-primary-400">/</span>
-              <span className="ml-2 text-lg font-medium text-primary-800">Files</span>
+              <h1 className="text-xl font-semibold text-primary-900">Prepare Files for Claude App</h1>
             </div>
             <div className="flex items-center space-x-4">
               <LogoutButton />

@@ -12,11 +12,7 @@ export default async function CoopersPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Link href="/" className="text-xl font-semibold text-primary-900 hover:text-primary-700 transition-colors">
-                Nathan Eichert
-              </Link>
-              <span className="ml-2 text-primary-400">/</span>
-              <span className="ml-2 text-lg font-medium text-primary-600">Coopers AI</span>
+              <h1 className="text-xl font-semibold text-primary-900">Coopers AI</h1>
             </div>
             <div className="flex items-center space-x-4">
               <LogoutButton />
@@ -53,9 +49,6 @@ export default async function CoopersPage() {
                 AI Transcript App
               </h2>
             </div>
-            <p className="text-primary-600 leading-relaxed">
-              Convert audio files to accurate text transcriptions using advanced AI technology.
-            </p>
           </Link>
 
           <Link
@@ -72,9 +65,6 @@ export default async function CoopersPage() {
                 Prepare Files for Claude App
               </h2>
             </div>
-            <p className="text-primary-600 leading-relaxed">
-              Optimize and format your files for seamless integration with Claude AI.
-            </p>
           </Link>
         </div>
 
@@ -83,9 +73,6 @@ export default async function CoopersPage() {
           {/* How-To Guides */}
           <div className="bg-white rounded-lg shadow-sm border border-primary-200 p-8">
             <h2 className="text-2xl font-semibold text-primary-900 mb-6">How-To Guides</h2>
-            <p className="text-primary-600 mb-6">
-              Comprehensive documentation and tutorials for getting the most out of Coopers AI tools.
-            </p>
             <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
               <p className="text-primary-700 text-sm">
                 Documentation will be available here soon. Check back for detailed guides and tutorials.
@@ -96,9 +83,6 @@ export default async function CoopersPage() {
           {/* Feedback */}
           <div className="bg-white rounded-lg shadow-sm border border-primary-200 p-8">
             <h2 className="text-2xl font-semibold text-primary-900 mb-6">Submit Feedback</h2>
-            <p className="text-primary-600 mb-6">
-              Help improve Coopers AI by sharing your feedback, suggestions, and feature requests.
-            </p>
             <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
               <p className="text-primary-700 text-sm">
                 Feedback form will be available here soon. Your input helps make these tools better.
