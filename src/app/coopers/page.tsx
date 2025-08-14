@@ -83,10 +83,18 @@ export default async function CoopersPage() {
           {/* Feedback */}
           <div className="bg-white rounded-lg shadow-sm border border-primary-200 p-8">
             <h2 className="text-2xl font-semibold text-primary-900 mb-6">Submit Feedback</h2>
-            <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
-              <p className="text-primary-700 text-sm">
-                Feedback form will be available here soon. Your input helps make these tools better.
-              </p>
+            <div className="text-center">
+              <a
+                href="https://forms.gle/T3N6yc7yVJZ9U2Ki7"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+              >
+                Open Feedback Form
+                <svg className="ml-2 -mr-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
             </div>
           </div>
         </div>
