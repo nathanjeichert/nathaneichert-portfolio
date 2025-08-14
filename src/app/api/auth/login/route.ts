@@ -4,8 +4,9 @@ import { NextResponse } from 'next/server'
 export async function POST(request: Request) {
   try {
     const { password } = await request.json()
+    const correctPassword = process.env.COOPERS_PASSWORD || 'CoopersAI2025'
     
-    if (password === 'CoopersAI2025') {
+    if (password === correctPassword) {
       const session = await getSession()
       session.isAuthenticated = true
       await session.save()
