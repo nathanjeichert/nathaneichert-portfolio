@@ -1,6 +1,6 @@
-import { requireAuth } from '@/lib/auth'
+import { requireAuth } from '../../../lib/auth'
 import Link from 'next/link'
-import LogoutButton from '@/components/LogoutButton'
+import LogoutButton from '../../../components/LogoutButton'
 
 export default async function FilesPage() {
   await requireAuth()
