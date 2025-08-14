@@ -21,5 +21,4 @@ Thumbs.db
 # GitHub Actions (not needed for Cloud Build)
 .github/
 
-# Local deployment script
-deploy.sh
+ 
