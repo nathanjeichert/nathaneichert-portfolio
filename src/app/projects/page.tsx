@@ -72,10 +72,20 @@ export default function ProjectsPage() {
                     {p.description}
                   </p>
                   <div className="mt-4">
-                    {/* Placeholder for GitHub repo preview/link */}
-                    <span className="inline-flex items-center text-primary-500">
-                      GitHub repo preview coming soon
-                    </span>
+                    {idx === 0 ? (
+                      <a
+                        href="https://transcribe.nathaneichert.com"
+                        className="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 transition-colors"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Try It Out
+                      </a>
+                    ) : (
+                      <span className="inline-flex items-center text-primary-500">
+                        GitHub repo preview coming soon
+                      </span>
+                    )}
                   </div>
                 </div>
 
