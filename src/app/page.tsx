@@ -48,28 +48,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* AI Tools Section */}
-        <div className="mt-32 max-w-3xl mx-auto">
-          <div className="bg-white rounded-lg shadow-md p-8 border border-primary-200">
-            <h2 className="text-2xl font-bold text-primary-900 mb-4">
-              AI Deposition Transcript Generator
-            </h2>
-            <p className="text-primary-600 mb-6">
-              Transform audio recordings into formatted deposition transcripts using AI technology.
-            </p>
-            <div className="flex justify-center">
-              <a
-                href="https://transcribe.nathaneichert.com"
-                className="rounded-md bg-primary-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 transition-colors"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Try It Out
-              </a>
-            </div>
-          </div>
-        </div>
-
       </main>
 
       {/* Footer */}
