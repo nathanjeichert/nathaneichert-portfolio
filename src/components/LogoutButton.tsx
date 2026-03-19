@@ -9,7 +9,7 @@ export default function LogoutButton() {
 
   const handleLogout = async () => {
     setIsLoading(true)
-    
+
     try {
       await fetch('/api/auth/logout', {
         method: 'POST',
@@ -26,7 +26,7 @@ export default function LogoutButton() {
     <button
       onClick={handleLogout}
       disabled={isLoading}
-      className="text-primary-600 hover:text-primary-500 px-3 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+      className="btn-muted px-3 py-2 rounded-[6px] text-[13px] font-medium disabled:opacity-50"
     >
       {isLoading ? 'Logging out...' : 'Logout'}
     </button>

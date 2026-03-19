@@ -8,21 +8,23 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b',
-          600: '#475569',
-          700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',
+        warm: {
+          bg: '#faf8f5',
+          white: '#ffffff',
+          subtle: '#f5f0eb',
+          border: '#e8e0d8',
+          'border-hover': '#d4c9be',
+          text: '#1a1612',
+          body: '#44403c',
+          muted: '#78716c',
+          dim: '#a8a29e',
+          accent: '#1e3a5f',
+          'accent-light': '#2d5a8e',
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['var(--font-inter)', 'system-ui', '-apple-system', 'sans-serif'],
+        serif: ['var(--font-lora)', 'Georgia', 'serif'],
       },
     },
   },

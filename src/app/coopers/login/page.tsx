@@ -10,7 +10,7 @@ function LoginForm() {
   const [error, setError] = useState('')
   const router = useRouter()
   const searchParams = useSearchParams()
-  
+
   const hasError = searchParams.get('error')
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,26 +40,32 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-sm border border-primary-200">
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg)' }}>
+      <div
+        className="max-w-md w-full bg-white rounded-lg p-8 space-y-8"
+        style={{ border: '1px solid var(--border)' }}
+      >
         <div>
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-primary-900">
+          <h2
+            className="mt-4 text-center font-serif text-[28px] font-bold"
+            style={{ color: 'var(--text)' }}
+          >
             Coopers AI Access
           </h2>
-          <p className="mt-2 text-center text-sm text-primary-600">
+          <p className="mt-2 text-center text-[14px]" style={{ color: 'var(--text-muted)' }}>
             Enter password to access the Coopers AI dashboard
           </p>
         </div>
-        
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {(error || hasError) && (
-            <div className="rounded-md bg-red-50 p-4 border border-red-200">
-              <div className="text-sm text-red-700">
+            <div className="rounded-lg p-4" style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca' }}>
+              <div className="text-[14px]" style={{ color: '#991b1b' }}>
                 {error || 'Incorrect password. Please try again.'}
               </div>
             </div>
           )}
-          
+
           <div>
             <label htmlFor="password" className="sr-only">
               Password
@@ -69,7 +75,7 @@ function LoginForm() {
               name="password"
               type="password"
               required
-              className="relative block w-full rounded-md border-0 py-3 px-4 text-primary-900 ring-1 ring-inset ring-primary-300 placeholder:text-primary-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+              className="input-warm block w-full rounded-lg py-3 px-4 text-[14px]"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -81,7 +87,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={isLoading}
-              className="group relative flex w-full justify-center rounded-md bg-primary-600 py-3 px-4 text-sm font-semibold text-white hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="btn-accent w-full flex justify-center rounded-[6px] py-3 px-4 text-[14px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Authenticating...' : 'Access Coopers AI'}
             </button>
@@ -90,9 +96,9 @@ function LoginForm() {
           <div className="text-center">
             <Link
               href="/"
-              className="text-sm text-primary-600 hover:text-primary-500 transition-colors"
+              className="nav-link text-[14px]"
             >
-              ← Back to Portfolio
+              &larr; Back to Portfolio
             </Link>
           </div>
         </form>
@@ -104,11 +110,17 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center">
-        <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-sm border border-primary-200">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
+        <div
+          className="max-w-md w-full bg-white rounded-lg p-8 space-y-8"
+          style={{ border: '1px solid var(--border)' }}
+        >
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-2 text-sm text-primary-600">Loading...</p>
+            <div
+              className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto"
+              style={{ borderColor: 'var(--accent)' }}
+            ></div>
+            <p className="mt-2 text-[14px]" style={{ color: 'var(--text-muted)' }}>Loading...</p>
           </div>
         </div>
       </div>
