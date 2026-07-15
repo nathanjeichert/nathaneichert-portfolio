@@ -1,7 +1,7 @@
 // Card selection: score = static_priority x urgency (x weak-subject boost, x jitter).
 // All knobs live in constants.js.
 
-import { SCHED } from './constants.js';
+import { SCHED, CONT } from './constants.js';
 import { bundle } from './data.js';
 import { recentAvg } from './state.js';
 
@@ -47,6 +47,22 @@ export function score(rule, cs, subjectMean, tierOverrides, now) {
 }
 
 /**
+ * Continuous-mode "need" for a seen card: how far its recent grades sit from
+ * the target, ramped by time since last seen (so a card just aced doesn't
+ * come straight back, but nothing is ever interval-locked).
+ */
+export function continuousNeed(cs, now) {
+  const avg = recentAvg(cs) ?? 0;
+  const weakness = Math.max(
+    CONT.WEAKNESS_FLOOR,
+    (CONT.TARGET_GRADE - Math.min(avg, CONT.TARGET_GRADE)) / CONT.TARGET_GRADE,
+  );
+  const window = avg <= CONT.FAIL_AVG ? CONT.FAIL_RAMP : CONT.RESEEN_RAMP;
+  const ramp = Math.min(1, Math.max(CONT.RESEEN_MIN, (now - cs.lastTs) / window));
+  return weakness * ramp;
+}
+
+/**
  * Build a drill session queue.
  * @param {Object} opts
  * @param {import('./types.js').Rule[]} opts.rules       all rules
@@ -56,46 +72,57 @@ export function score(rule, cs, subjectMean, tierOverrides, now) {
  * @param {Set<string>} opts.flags                        delete-flagged ids (always excluded)
  * @param {Object<string, boolean>} opts.introduced       deck -> intro completed
  * @param {Object} opts.settings
- * @param {number} opts.length
+ * @param {number} opts.length                             numeric queue size for this build
  * @param {string[]} [opts.onlyIds]                       explicit queue (weakest-cards drill)
+ * @param {Set<string>} [opts.excludeIds]                 ids to skip (endless refill: already queued)
  * @returns {{queue: string[], nNew: number, nDue: number}}
  */
 export function buildSession(opts) {
   const { rules, cards, subjectMean, tierOverrides, flags, introduced, settings } = opts;
   const now = Date.now();
-  const length = opts.length || settings.sessionLength;
+  const length = opts.length;
+  const exclude = opts.excludeIds || new Set();
 
   if (opts.onlyIds && opts.onlyIds.length) {
     return { queue: opts.onlyIds.slice(0, length), nNew: 0, nDue: opts.onlyIds.length };
   }
 
   const eligible = rules.filter(r => {
-    if (flags.has(r.id)) return false;
+    if (flags.has(r.id) || exclude.has(r.id)) return false;
     const t = effTier(r, tierOverrides);
     if (t === 'T3' && !settings.includeT3) return false;
     if (settings.subjectFilter && r.deck !== settings.subjectFilter) return false;
     return true;
   });
 
-  if (settings.cramMode) {
-    // Cram: ignore intervals; lowest recent average first, T1 before T2/T3,
-    // unseen cards go to the back (cram is for hammering what's weak, not intros).
-    const seen = eligible.filter(r => cards.has(r.id));
-    const unseen = eligible.filter(r => !cards.has(r.id));
-    const tierRank = { T1: 0, T2: 1, T3: 2 };
-    seen.sort((a, b) => {
-      const ta = tierRank[effTier(a, tierOverrides)], tb = tierRank[effTier(b, tierOverrides)];
-      if (ta !== tb) return ta - tb;
-      const ga = recentAvg(cards.get(a.id)) ?? 0, gb = recentAvg(cards.get(b.id)) ?? 0;
-      if (ga !== gb) return ga - gb;
-      return priority(b, tierOverrides) - priority(a, tierOverrides);
-    });
-    unseen.sort((a, b) => priority(b, tierOverrides) - priority(a, tierOverrides));
-    const queue = seen.concat(unseen).slice(0, length).map(r => r.id);
-    return { queue, nNew: 0, nDue: queue.length };
+  const continuous = settings.scheduling !== 'spaced';
+
+  if (continuous) {
+    // Continuous (default): ONE ranked pool, no interval gating and no quota
+    // split. Every card scores priority x need x weak-subject boost x jitter:
+    //   unseen               need = NEW_NEED (0.85)
+    //   seen, weak, rested   need up to 0.75
+    //   seen recently        need shrinks toward the ramp floor
+    //   seen and strong      need = floor (cycles back only when little else)
+    // The ordering self-balances new vs weak vs strong — exactly the exam-value
+    // scoring, without the spaced-repetition machinery.
+    const pool = eligible
+      .filter(r => cards.has(r.id) || !settings.requireIntro || introduced[r.deck])
+      .map(r => {
+        const cs = cards.get(r.id);
+        const need = cs ? continuousNeed(cs, now) : CONT.NEW_NEED;
+        return { r, seen: !!cs, s: priority(r, tierOverrides) * need * subjectBoost(r, cs, subjectMean, now) * jitter() };
+      })
+      .sort((a, b) => b.s - a.s)
+      .slice(0, length);
+    return {
+      queue: pool.map(x => x.r.id),
+      nNew: pool.filter(x => !x.seen).length,
+      nDue: pool.filter(x => x.seen).length,
+    };
   }
 
-  // Due reviews, best score first.
+  // Spaced mode: cards whose interval has elapsed, ranked by overdue-ness.
   const due = eligible
     .filter(r => cards.has(r.id) && cards.get(r.id).due <= now)
     .map(r => ({ r, s: score(r, cards.get(r.id), subjectMean, tierOverrides, now) }))
@@ -118,10 +145,11 @@ export function buildSession(opts) {
   const pickedDue = due.slice(0, nDue).map(x => x.r.id);
   const pickedNew = fresh.slice(0, nNew).map(x => x.r.id);
 
-  // Still short? Pull ahead-of-schedule reviews (nearest due first).
+  // Spaced mode, still short? Pull ahead-of-schedule reviews (nearest due first).
+  // (Continuous mode never needs this: every seen card is already in the pool.)
   let queueLen = pickedDue.length + pickedNew.length;
   let early = [];
-  if (queueLen < length) {
+  if (!continuous && queueLen < length) {
     early = eligible
       .filter(r => cards.has(r.id) && cards.get(r.id).due > now)
       .sort((a, b) => cards.get(a.id).due - cards.get(b.id).due)
@@ -144,7 +172,7 @@ export function buildSession(opts) {
   return { queue: queue.slice(0, length), nNew: pickedNew.length, nDue: pickedDue.length };
 }
 
-/** Count of cards due now (for home/stats badges). */
+/** Count of cards due now (spaced-mode badge). */
 export function dueCount(rules, cards, tierOverrides, flags, settings, now = Date.now()) {
   let n = 0;
   for (const r of rules) {
@@ -153,6 +181,17 @@ export function dueCount(rules, cards, tierOverrides, flags, settings, now = Dat
     if (t === 'T3' && !settings.includeT3) continue;
     const cs = cards.get(r.id);
     if (cs && cs.due <= now) n++;
+  }
+  return n;
+}
+
+/** Count of seen cards whose recent average is <= 6 ("weak" badge). */
+export function weakCount(rules, cards, flags) {
+  let n = 0;
+  for (const r of rules) {
+    if (flags.has(r.id)) continue;
+    const cs = cards.get(r.id);
+    if (cs && (recentAvg(cs) ?? 9) <= 6) n++;
   }
   return n;
 }

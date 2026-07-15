@@ -97,7 +97,9 @@ export function renderSettings(root, navigate) {
       row('Text size', segmented('textSize', [['s', 'S'], ['m', 'M'], ['l', 'L'], ['xl', 'XL']], () => applyAppearance(s))),
 
       h('h2', {}, 'Sessions'),
-      row('Session length', segmented('sessionLength', SESSION_LENGTH_CHOICES.map(n => [n, String(n)]))),
+      row('Session length', segmented('sessionLength', SESSION_LENGTH_CHOICES), '∞ keeps serving cards until you stop'),
+      row('Scheduling', segmented('scheduling', [['continuous', 'Continuous'], ['spaced', 'Spaced']]),
+        'Continuous always serves the highest-value card; Spaced waits out review intervals'),
       row('Subject filter', h('select.filter-sel', {
         onchange: async e => { s.subjectFilter = e.target.value; await saveSettings(); },
       },
@@ -106,7 +108,6 @@ export function renderSettings(root, navigate) {
       ), 'Drill sessions draw only from this deck'),
       row('Include T3 cards', toggle('includeT3'), 'Minutiae / duplicates stay out of drills by default'),
       row('Require subject intro', toggle('requireIntro'), 'New cards enter drills only after their deck’s intro'),
-      row('Cram mode', toggle('cramMode'), 'Ignore intervals; serve lowest-grade T1 cards (final days)'),
 
       h('h2', {}, 'Feedback'),
       row('Sound on grade', toggle('sound')),

@@ -5,9 +5,9 @@ import { h, clear, ring, bars, sparkline, tierChip } from '../ui.js';
 import { setKeyHandler } from '../keyboard.js';
 import { bundle, rulesById, deckCodes, daysToExam } from '../data.js';
 import { App, isIntroduced } from '../app.js';
-import { effTier, dueCount } from '../scheduler.js';
+import { effTier, dueCount, weakCount } from '../scheduler.js';
 import { recentAvg, reviewsByDay, dayKey, streak } from '../state.js';
-import { setDrillPreset, renderDrill } from './drill.js';
+import { setDrillPreset } from './drill.js';
 import { WEAKEST_LIST_SIZE } from '../constants.js';
 
 export function renderStats(root, navigate) {
@@ -21,18 +21,21 @@ export function renderStats(root, navigate) {
 
   const seen = live.filter(r => App.cards.has(r.id)).length;
   const introduced = deckCodes.filter(isIntroduced).length;
-  const due = dueCount(bundle.rules, App.cards, App.tierOverrides, App.flags, App.settings, now);
+  const spaced = App.settings.scheduling === 'spaced';
+  const attention = spaced
+    ? dueCount(bundle.rules, App.cards, App.tierOverrides, App.flags, App.settings, now)
+    : weakCount(bundle.rules, App.cards, App.flags);
 
   // Per-subject rows, heaviest first.
   const subjects = new Map();
   for (const r of live) {
     let s = subjects.get(r.subject);
-    if (!s) { s = { subject: r.subject, weight: r.subject_freq, total: 0, seen: 0, due: 0, gradeSum: 0, graded: 0 }; subjects.set(r.subject, s); }
+    if (!s) { s = { subject: r.subject, weight: r.subject_freq, total: 0, seen: 0, need: 0, gradeSum: 0, graded: 0 }; subjects.set(r.subject, s); }
     s.total++;
     const cs = App.cards.get(r.id);
     if (cs) {
       s.seen++;
-      if (cs.due <= now) s.due++;
+      if (spaced ? cs.due <= now : (recentAvg(cs) ?? 9) <= 6) s.need++;
       const avg = recentAvg(cs);
       if (avg != null) { s.gradeSum += avg; s.graded++; }
     }
@@ -77,7 +80,7 @@ export function renderStats(root, navigate) {
       h('div.summary-grid', {},
         h('div.stat-tile', {}, h('div.stat-num', {}, `${seen}`), h('div.stat-cap', {}, `of ${live.length} seen`)),
         h('div.stat-tile', {}, h('div.stat-num', {}, `${introduced}/${deckCodes.length}`), h('div.stat-cap', {}, 'decks introduced')),
-        h('div.stat-tile', {}, h('div.stat-num', {}, String(due)), h('div.stat-cap', {}, 'due now')),
+        h('div.stat-tile', {}, h('div.stat-num', {}, String(attention)), h('div.stat-cap', {}, spaced ? 'due now' : 'weak cards')),
         h('div.stat-tile', {}, h('div.stat-num', {}, String(streak(App.reviews, now))), h('div.stat-cap', {}, 'day streak')),
       ),
 
@@ -92,7 +95,7 @@ export function renderStats(root, navigate) {
         h('table.subject-table', {},
           h('thead', {}, h('tr', {},
             h('th', {}, 'Subject'), h('th.num', {}, '% exams'), h('th.num', {}, 'Seen'),
-            h('th.num', {}, 'Avg'), h('th.num', {}, 'Due'))),
+            h('th.num', {}, 'Avg'), h('th.num', {}, spaced ? 'Due' : 'Weak'))),
           h('tbody', {}, subjectRows.map(s => {
             const avg = s.graded ? (s.gradeSum / s.graded) : null;
             return h('tr', {},
@@ -100,7 +103,7 @@ export function renderStats(root, navigate) {
               h('td.num.dim', {}, s.weight + '%'),
               h('td.num', {}, `${s.seen}/${s.total}`),
               h('td.num' + (avg != null && avg < 5.5 ? '.weak-avg' : ''), {}, avg == null ? '—' : avg.toFixed(1)),
-              h('td.num', {}, s.due || ''),
+              h('td.num', {}, s.need || ''),
             );
           })),
         ),

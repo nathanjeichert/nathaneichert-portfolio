@@ -6,10 +6,10 @@ import { setKeyHandler } from '../keyboard.js';
 import { bundle, rulesById } from '../data.js';
 import { App, gradeCard, undoLast, cycleTier, toggleFlag, isIntroduced } from '../app.js';
 import { buildSession, effTier } from '../scheduler.js';
-import { recentAvg, streak } from '../state.js';
+import { recentAvg, streak, reviewsByDay, dayKey } from '../state.js';
 import { contextLine, promptBlock, skeletonBlock, answerBlock } from '../cardview.js';
 import { gradeSound, revealSound, haptic } from '../audio.js';
-import { SCHED, GRADE_LABELS } from '../constants.js';
+import { SCHED, GRADE_LABELS, ENDLESS_CHUNK } from '../constants.js';
 
 let preset = null;
 /** Stats/Browse can preset the next session (e.g. weakest-cards drill). */
@@ -24,7 +24,8 @@ function weakestIds(n) {
 }
 
 export function renderDrill(root, navigate) {
-  const opts = {
+  const endless = App.settings.sessionLength === 'endless' && !preset?.onlyIds;
+  const sessionOpts = () => ({
     rules: bundle.rules,
     cards: App.cards,
     subjectMean: App.subjectMean,
@@ -32,13 +33,11 @@ export function renderDrill(root, navigate) {
     flags: App.flags,
     introduced: Object.fromEntries([...new Set(bundle.rules.map(r => r.deck))].map(d => [d, isIntroduced(d)])),
     settings: App.settings,
-    length: App.settings.sessionLength,
-    onlyIds: preset?.onlyIds,
-  };
+    length: endless ? ENDLESS_CHUNK : App.settings.sessionLength,
+  });
   const label = preset?.label;
+  const { queue, nNew, nDue } = buildSession({ ...sessionOpts(), onlyIds: preset?.onlyIds });
   preset = null;
-
-  const { queue, nNew, nDue } = buildSession(opts);
   if (!queue.length) { renderEmpty(root, navigate); return; }
 
   const session = {
@@ -51,16 +50,42 @@ export function renderDrill(root, navigate) {
   };
   let phase = 'prompt';    // prompt | revealed
   let hints = 0;           // 0 none, 1 bare, 2 guided
+  let busy = false;        // guards async actions against key auto-repeat / double-press
 
   const isMobile = matchMedia('(pointer: coarse)').matches;
 
   function currentRule() { return rulesById.get(session.queue[session.pos]); }
 
+  // Endless: top the queue back up before it runs dry (excluding what's pending).
+  function refill() {
+    if (!endless || session.queue.length - session.pos > 3) return;
+    const pending = new Set(session.queue.slice(session.pos));
+    const more = buildSession({ ...sessionOpts(), excludeIds: pending });
+    for (const id of more.queue) if (!pending.has(id)) session.queue.push(id);
+  }
+
+  function progressBits() {
+    if (!endless) {
+      return {
+        label: `${session.pos + 1} / ${session.queue.length}`,
+        fill: (session.pos / session.queue.length) * 100,
+      };
+    }
+    // Endless sessions fill the bar toward the daily goal instead.
+    const today = reviewsByDay(App.reviews).get(dayKey(Date.now())) || 0;
+    return {
+      label: `${session.graded.length} this session · ∞`,
+      fill: Math.min(100, (today / App.settings.dailyGoal) * 100),
+    };
+  }
+
   function draw() {
+    refill();
     if (session.pos >= session.queue.length) { drawSummary(); return; }
     const rule = currentRule();
     if (!rule) { session.queue.splice(session.pos, 1); draw(); return; }
     const cs = App.cards.get(rule.id);
+    const prog = progressBits();
 
     clear(root).append(
       h('section.drill', {},
@@ -68,14 +93,17 @@ export function renderDrill(root, navigate) {
           h('button.btn.btn-ghost', { onclick: endEarly }, '← End'),
           h('div.run-progress-label', {},
             session.label ? session.label + ' · ' : '',
-            `${session.pos + 1} / ${session.queue.length}`),
+            prog.label),
         ),
-        h('div.progress-track', {}, h('div.progress-fill', { style: `width:${(session.pos / session.queue.length) * 100}%` })),
+        h('div.progress-track', { title: endless ? 'progress toward daily goal' : '' },
+          h('div.progress-fill', { style: `width:${prog.fill}%` })),
 
         h('div.card-surface.drill-card' + (phase === 'revealed' ? '.revealed' : ''), {
           onclick: phase === 'prompt' ? reveal : undefined,
         },
-          contextLine(rule, cs ? h('span.ctx-seen', {}, `seen ${cs.seen}×`) : h('span.ctx-new', {}, 'new')),
+          contextLine(rule, cs
+            ? h('span.ctx-seen', {}, `seen ${cs.seen}× · avg ${(recentAvg(cs) ?? 0).toFixed(1)}`)
+            : h('span.ctx-new', {}, 'new')),
           promptBlock(rule),
           hints >= 1 && phase === 'prompt' ? skeletonBlock(rule.bare, 'Bare skeleton') : null,
           hints >= 2 && phase === 'prompt' ? skeletonBlock(rule.guided, 'Guided skeleton') : null,
@@ -123,23 +151,26 @@ export function renderDrill(root, navigate) {
   }
 
   async function grade(g) {
-    if (phase !== 'revealed') return;
-    const rule = currentRule();
-    await gradeCard(rule.id, g, hints);
-    session.graded.push({ id: rule.id, g, h: hints });
-    if (App.settings.sound) gradeSound(g);
-    if (App.settings.haptics) haptic(g <= 3 ? [14, 40, 14] : 12);
+    if (phase !== 'revealed' || busy) return;
+    busy = true;
+    try {
+      const rule = currentRule();
+      await gradeCard(rule.id, g, hints);
+      session.graded.push({ id: rule.id, g, h: hints });
+      if (App.settings.sound) gradeSound(g);
+      if (App.settings.haptics) haptic(g <= 3 ? [14, 40, 14] : 12);
 
-    // Failed cards re-enter this session a few cards later.
-    if (g <= 3) {
-      const at = Math.min(session.queue.length, session.pos + 1 + SCHED.RESERVE_GAP);
-      session.queue.splice(at, 0, rule.id);
-    }
-    flashGrade(g);
-    session.pos++;
-    phase = 'prompt';
-    hints = 0;
-    draw();
+      // Failed cards re-enter this session a few cards later.
+      if (g <= 3) {
+        const at = Math.min(session.queue.length, session.pos + 1 + SCHED.RESERVE_GAP);
+        session.queue.splice(at, 0, rule.id);
+      }
+      flashGrade(g);
+      session.pos++;
+      phase = 'prompt';
+      hints = 0;
+      draw();
+    } finally { busy = false; }
   }
 
   function flashGrade(g) {
@@ -150,21 +181,25 @@ export function renderDrill(root, navigate) {
   }
 
   async function undo() {
+    if (busy) return;
     if (!session.graded.length) { toast('Nothing to undo in this session'); return; }
-    const lastGraded = session.graded.pop();
-    await undoLast();
-    // Remove the re-serve copy if the undone grade was a fail.
-    if (lastGraded.g <= 3) {
-      const i = session.queue.indexOf(lastGraded.id, session.pos);
-      if (i >= 0) session.queue.splice(i, 1);
-    }
-    session.pos = Math.max(0, session.pos - 1);
-    // Land back on the undone card, revealed, so he can re-grade.
-    session.queue[session.pos] = lastGraded.id;
-    phase = 'revealed';
-    hints = lastGraded.h;
-    toast(`Undid ${lastGraded.id} (was ${lastGraded.g})`);
-    draw();
+    busy = true;
+    try {
+      const lastGraded = session.graded.pop();
+      await undoLast();
+      // Remove the re-serve copy if the undone grade was a fail.
+      if (lastGraded.g <= 3) {
+        const i = session.queue.indexOf(lastGraded.id, session.pos);
+        if (i >= 0) session.queue.splice(i, 1);
+      }
+      session.pos = Math.max(0, session.pos - 1);
+      // Land back on the undone card, revealed, so he can re-grade.
+      session.queue[session.pos] = lastGraded.id;
+      phase = 'revealed';
+      hints = lastGraded.h;
+      toast(`Undid ${lastGraded.id} (was ${lastGraded.g})`);
+      draw();
+    } finally { busy = false; }
   }
 
   async function retier() {
@@ -175,6 +210,7 @@ export function renderDrill(root, navigate) {
   }
 
   async function flag() {
+    if (busy) return;
     const rule = currentRule();
     const on = await toggleFlag(rule.id);
     if (on) {
@@ -235,6 +271,7 @@ export function renderDrill(root, navigate) {
   }
 
   setKeyHandler(e => {
+    if (e.repeat) return true;   // holding a key must not spam grades/undos/flags
     const k = e.key;
     if (k === ' ') { if (phase === 'prompt') reveal(); return true; }
     if (k >= '1' && k <= '9') { grade(Number(k)); return true; }
@@ -254,12 +291,16 @@ function renderEmpty(root, navigate) {
     h('section.empty-state.drill-empty', {},
       h('h1', {}, 'Nothing in the queue'),
       h('p.dim', {}, App.settings.subjectFilter
-        ? 'No due or new cards match the current subject filter.'
-        : 'Nothing is due and no new cards are unlocked. Intro a subject to unlock its cards, or hammer the weak ones.'),
+        ? 'No cards match the current subject filter — its deck may need its intro first (or clear the filter in Settings).'
+        : 'No cards are unlocked yet. Intro a subject to bring its cards into the rotation.'),
       h('div.dialog-row', {},
         h('button.btn', { onclick: () => navigate('#/intro') }, 'Subject intros'),
         anySeen ? h('button.btn.btn-primary', {
-          onclick: () => { setDrillPreset({ onlyIds: weakestIds(App.settings.sessionLength), label: 'Weakest' }); renderDrill(root, navigate); },
+          onclick: () => {
+            const n = typeof App.settings.sessionLength === 'number' ? App.settings.sessionLength : ENDLESS_CHUNK;
+            setDrillPreset({ onlyIds: weakestIds(n), label: 'Weakest' });
+            renderDrill(root, navigate);
+          },
         }, 'Drill weakest cards') : null,
         h('button.btn', { onclick: () => navigate('#/settings') }, 'Settings'),
       ),

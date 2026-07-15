@@ -4,15 +4,17 @@
 import { h, clear } from '../ui.js';
 import { setKeyHandler } from '../keyboard.js';
 import { bundle, rulesByDeck, deckCodes, deckTitle, daysToExam } from '../data.js';
-import { App, isIntroduced, saveSettings } from '../app.js';
-import { dueCount, effTier } from '../scheduler.js';
+import { App, isIntroduced } from '../app.js';
+import { dueCount, weakCount, effTier } from '../scheduler.js';
 import { streak, dayKey, reviewsByDay } from '../state.js';
 import { INTRO_SECONDS_PER_RULE } from '../constants.js';
 
 export function renderHome(root, navigate) {
   const now = Date.now();
   const days = daysToExam(now);
+  const spaced = App.settings.scheduling === 'spaced';
   const due = dueCount(bundle.rules, App.cards, App.tierOverrides, App.flags, App.settings, now);
+  const weak = weakCount(bundle.rules, App.cards, App.flags);
 
   // new cards available (respecting gating + filters)
   let freshAvail = 0, freshGated = 0;
@@ -40,7 +42,15 @@ export function renderHome(root, navigate) {
     })
     .sort((a, b) => b.weight - a.weight);
 
-  const allCaughtUp = due === 0 && freshAvail === 0;
+  // Continuous mode always has cards once anything is seen or unlocked;
+  // "caught up" only means nothing is unlocked at all.
+  const nothingAvailable = spaced ? (due === 0 && freshAvail === 0)
+    : (freshAvail === 0 && App.cards.size === 0);
+
+  const startSub = spaced
+    ? (due ? `${due} due` : (freshAvail ? `${freshAvail} new available` : 'weakest cards'))
+    : [freshAvail ? `${freshAvail} unseen` : null, weak ? `${weak} weak` : null]
+        .filter(Boolean).join(' · ') || 'keep sharpening';
 
   clear(root).append(
     h('section.home', {},
@@ -51,27 +61,20 @@ export function renderHome(root, navigate) {
 
       h('div.home-actions', {},
         h('button.btn.btn-primary.btn-big', { onclick: () => navigate('#/drill') },
-          App.settings.cramMode ? 'Start cram session' : 'Start session',
-          h('span.btn-sub', {}, due ? `${due} due` : (freshAvail ? `${freshAvail} new available` : 'weakest cards')),
+          'Start session',
+          h('span.btn-sub', {}, startSub),
         ),
         h('div.home-stats', {},
           h('div.stat-tile', {}, h('div.stat-num', {}, String(today)), h('div.stat-cap', {}, `of ${goal} today`)),
-          h('div.stat-tile', {}, h('div.stat-num', {}, String(stk)), h('div.stat-cap', {}, stk === 1 ? 'day streak' : 'day streak')),
-          h('div.stat-tile', {}, h('div.stat-num', {}, String(due)), h('div.stat-cap', {}, 'due now')),
+          h('div.stat-tile', {}, h('div.stat-num', {}, String(stk)), h('div.stat-cap', {}, 'day streak')),
+          h('div.stat-tile', {}, h('div.stat-num', {}, String(spaced ? due : weak)), h('div.stat-cap', {}, spaced ? 'due now' : 'weak cards')),
         ),
       ),
 
-      App.settings.cramMode ? h('div.cram-note', {},
-        'Cram mode is on — intervals ignored, weakest T1 cards first. ',
-        h('a', { href: '#', onclick: async e => { e.preventDefault(); App.settings.cramMode = false; await saveSettings(); renderHome(root, navigate); } }, 'Turn off'),
-      ) : null,
-
-      allCaughtUp ? h('div.empty-state', {},
+      nothingAvailable ? h('div.empty-state', {},
         h('p', {}, freshGated
-          ? 'Nothing due — new cards are waiting behind subject intros.'
-          : 'All caught up. Nothing due right now.'),
-        h('p.dim', {}, `${days} days out — a cram pass through weak cards never hurts.`),
-        h('button.btn', { onclick: async () => { App.settings.cramMode = true; await saveSettings(); navigate('#/drill'); } }, 'Drill weakest cards'),
+          ? 'New cards are waiting behind subject intros — one pass unlocks a deck.'
+          : 'Nothing unlocked yet. Start with a subject intro below.'),
       ) : null,
 
       nudges.length ? h('div.nudges', {},

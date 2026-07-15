@@ -33,8 +33,22 @@ export const SCHED = {
   HINT_GRADE_CAP: [9, 7, 6],
 };
 
-export const SESSION_DEFAULT_LENGTH = 25;
-export const SESSION_LENGTH_CHOICES = [10, 15, 25, 40, 60];
+// Continuous scheduling (the default): no intervals — every card is always
+// eligible, ranked by exam value x how much it needs work x how recently seen.
+export const CONT = {
+  TARGET_GRADE: 8,          // "needs work" is distance from this
+  WEAKNESS_FLOOR: 0.06,     // strong cards never fully drop out of rotation
+  RESEEN_RAMP: 30 * MIN,    // a just-seen card ramps back to full need over this window
+  FAIL_RAMP: 10 * MIN,      // cards averaging <=3.5 ramp back much faster
+  FAIL_AVG: 3.5,
+  RESEEN_MIN: 0.02,         // floor so nothing is ever fully excluded
+  NEW_NEED: 0.85,           // unseen cards' need: just above a rested failing card (0.75),
+                            // far above anything you can already recite
+};
+
+export const SESSION_DEFAULT_LENGTH = 'endless';
+export const SESSION_LENGTH_CHOICES = [[10, '10'], [25, '25'], [40, '40'], ['endless', '∞']];
+export const ENDLESS_CHUNK = 25;   // queue build/refill size in endless sessions
 export const DAILY_GOAL_DEFAULT = 50;
 export const INTRO_SECONDS_PER_RULE = 7;   // for "Intro Torts first (~9 min)" estimates
 export const WEAKEST_LIST_SIZE = 20;
@@ -46,10 +60,10 @@ export const LS_PREFIX = 'barrules.';
 export const DEFAULT_SETTINGS = {
   theme: 'system',          // system | light | dark
   textSize: 'm',            // s | m | l | xl
-  sessionLength: SESSION_DEFAULT_LENGTH,
+  scheduling: 'continuous', // continuous (no intervals; always serve the best card) | spaced (SM-2-lite)
+  sessionLength: SESSION_DEFAULT_LENGTH,   // number | 'endless'
   includeT3: false,
   requireIntro: true,       // scheduler serves new cards only from introduced decks
-  cramMode: false,          // ignore intervals; serve lowest-average-grade T1 cards
   sound: false,
   haptics: true,
   dailyGoal: DAILY_GOAL_DEFAULT,

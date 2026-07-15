@@ -1,7 +1,7 @@
 // Browse: searchable, filterable reference over all 806 rules.
 // Row click opens the full card with its review history sparkline.
 
-import { h, clear, toast, tierChip, gradeDot, sparkline, fmtDue, fmtAgo, onSwipe } from '../ui.js';
+import { h, clear, toast, tierChip, gradeDot, sparkline, fmtDue, fmtAgo } from '../ui.js';
 import { setKeyHandler } from '../keyboard.js';
 import { bundle, rulesById, deckCodes, deckTitle, deckChecklist } from '../data.js';
 import { App, cycleTier, toggleFlag } from '../app.js';
@@ -123,7 +123,9 @@ export function renderBrowse(root, navigate, detailId) {
           h('h3', {}, 'History'),
           cs ? h('div.detail-history-row', {},
             sparkline(cs.grades),
-            h('span.dim', {}, `seen ${cs.seen}× · last ${fmtAgo(cs.lastTs)} · ${fmtDue(cs.due)}${cs.hints ? ` · ${cs.hints} hints` : ''}`),
+            h('span.dim', {}, `seen ${cs.seen}× · last ${fmtAgo(cs.lastTs)}` +
+              (App.settings.scheduling === 'spaced' ? ` · ${fmtDue(cs.due)}` : '') +
+              (cs.hints ? ` · ${cs.hints} hints` : '')),
           ) : h('p.dim', {}, 'Never drilled.'),
         ),
         h('div.dialog-row', {},

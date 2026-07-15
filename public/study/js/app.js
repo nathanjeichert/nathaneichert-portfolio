@@ -27,7 +27,15 @@ export function recompute() {
 }
 
 export async function loadPersisted() {
-  App.settings = { ...DEFAULT_SETTINGS, ...(await kvGet('settings', {})) };
+  const stored = await kvGet('settings', {});
+  // Migration (July 2026): continuous/endless replaced interval scheduling as
+  // the default. Profiles saved before that carry old keys — adopt the new
+  // defaults for them rather than pinning them to the old behavior.
+  if (stored.scheduling === undefined) {
+    delete stored.sessionLength;
+    delete stored.cramMode;
+  }
+  App.settings = { ...DEFAULT_SETTINGS, ...stored };
   App.tierOverrides = await kvGet('tierOverrides', {});
   App.flags = new Set(await kvGet('deleteFlags', []));
   App.introProgress = await kvGet('introProgress', {});

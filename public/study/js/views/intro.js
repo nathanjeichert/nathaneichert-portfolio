@@ -1,7 +1,7 @@
 // Subject Intro: deck list -> subject map (checklist + section outline) ->
 // guided walkthrough (prompt+answer together, no grading). Progress persists.
 
-import { h, clear, onSwipe, toast } from '../ui.js';
+import { h, clear, onSwipe } from '../ui.js';
 import { setKeyHandler } from '../keyboard.js';
 import { rulesByDeck, sectionsByDeck, deckCodes, deckTitle, deckChecklist, sectionArea, areaFreq } from '../data.js';
 import { App, isIntroduced, saveIntro } from '../app.js';
