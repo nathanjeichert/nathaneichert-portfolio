@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-size="m">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Bar Rules</title>
+  <meta name="description" content="California bar essay rule drilling">
+  <meta name="theme-color" content="#4338ca">
+  <meta name="robots" content="noindex">
+  <link rel="manifest" href="/study/manifest.webmanifest">
+  <link rel="icon" href="/study/icon-192.png">
+  <link rel="apple-touch-icon" href="/study/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Bar Rules">
+  <link rel="stylesheet" href="/study/css/styles.css">
+  <script>
+    // Paint the right theme before first render (no flash).
+    (function () {
+      try {
+        var s = localStorage.getItem('barrules.theme-hint');
+        var mode = s || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = mode;
+      } catch (e) { /* default stands */ }
+    })();
+  </script>
+</head>
+<body>
+  <header id="appbar" class="appbar"></header>
+  <main id="view" class="view">
+    <div class="boot-splash">
+      <div class="boot-glyph">§</div>
+    </div>
+  </main>
+  <script type="module" src="/study/js/main.js"></script>
+  <noscript>Bar Rules needs JavaScript.</noscript>
+</body>
+</html>

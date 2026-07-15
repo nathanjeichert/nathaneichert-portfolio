@@ -1,0 +1,17 @@
+{
+  "name": "Bar Rules",
+  "short_name": "Bar Rules",
+  "description": "California bar essay rule drilling — 806 recitable rule statements, spaced repetition, offline.",
+  "id": "/study",
+  "start_url": "/study",
+  "scope": "/study",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fafaf8",
+  "theme_color": "#4338ca",
+  "icons": [
+    { "src": "/study/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/study/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/study/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -8,6 +8,12 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: false,
   },
+  async rewrites() {
+    return [
+      // Bar Rules study app: static PWA living in public/study/ (see public/study/README.md)
+      { source: '/study', destination: '/study/index.html' },
+    ]
+  },
 }
 
 module.exports = nextConfig
