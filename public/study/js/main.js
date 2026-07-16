@@ -1,7 +1,7 @@
 // Boot: load data + persisted state, wire the router and keyboard, register
 // the service worker, surface update/backup toasts.
 
-import { loadData, daysToExam } from './data.js';
+import { loadData, loadFro, daysToExam } from './data.js';
 import { initStore } from './store.js';
 import { App, loadPersisted } from './app.js';
 import { h, clear, toast } from './ui.js';
@@ -118,6 +118,7 @@ async function boot() {
     ));
     return;
   }
+  loadFro();   // FRO excerpts load in the background; views pick them up when ready
   await initStore();
   await loadPersisted();
   applyAppearance(App.settings);

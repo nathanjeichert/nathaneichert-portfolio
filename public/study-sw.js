@@ -9,7 +9,7 @@
 //     upstream) is picked up in the background even without a VERSION bump;
 //     clients get a "rules-updated" message and show a reload toast.
 
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE = 'barrules-' + VERSION;
 
 const SHELL = [
@@ -41,6 +41,7 @@ const SHELL = [
   '/study/icon-maskable-512.png',
   '/study/apple-touch-icon.png',
   '/study/rules.json',
+  '/study/fro.json',
 ];
 
 self.addEventListener('install', event => {
@@ -66,9 +67,12 @@ async function notifyClients(msg) {
   for (const c of clients) c.postMessage(msg);
 }
 
-async function staleWhileRevalidateRules(request) {
+// Data bundles: serve cached instantly, refresh in the background. A changed
+// rules.json additionally notifies clients (reload toast); fro.json just
+// updates silently for the next load.
+async function staleWhileRevalidateData(request, path, notify) {
   const cache = await caches.open(CACHE);
-  const cached = await cache.match('/study/rules.json');
+  const cached = await cache.match(path);
   const fetchAndUpdate = (async () => {
     try {
       const fresh = await fetch(request);
@@ -76,11 +80,11 @@ async function staleWhileRevalidateRules(request) {
       if (cached) {
         const [a, b] = await Promise.all([cached.clone().text(), fresh.clone().text()]);
         if (a !== b) {
-          await cache.put('/study/rules.json', fresh.clone());
-          notifyClients({ type: 'rules-updated' });
+          await cache.put(path, fresh.clone());
+          if (notify) notifyClients({ type: notify });
         }
       } else {
-        await cache.put('/study/rules.json', fresh.clone());
+        await cache.put(path, fresh.clone());
       }
       return fresh;
     } catch { return null; }
@@ -121,7 +125,9 @@ self.addEventListener('fetch', event => {
   if (!url.pathname.startsWith('/study')) return;
 
   if (url.pathname === '/study/rules.json') {
-    event.respondWith(staleWhileRevalidateRules(req));
+    event.respondWith(staleWhileRevalidateData(req, '/study/rules.json', 'rules-updated'));
+  } else if (url.pathname === '/study/fro.json') {
+    event.respondWith(staleWhileRevalidateData(req, '/study/fro.json', null));
   } else {
     event.respondWith(cacheFirst(req));
   }

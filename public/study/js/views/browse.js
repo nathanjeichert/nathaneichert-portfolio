@@ -7,6 +7,7 @@ import { bundle, rulesById, deckCodes, deckTitle, deckChecklist } from '../data.
 import { App, cycleTier, toggleFlag } from '../app.js';
 import { effTier, priority } from '../scheduler.js';
 import { recentAvg } from '../state.js';
+import { froDetails } from '../cardview.js';
 
 const filters = { q: '', deck: '', tier: '', status: '', sort: 'deck' };
 
@@ -119,6 +120,7 @@ export function renderBrowse(root, navigate, detailId) {
         rule.prose ? h('div.prose', {}, h('div.part-label', {}, 'Say it'), h('p', {}, rule.prose)) : null,
         rule.tip ? h('div.tip', {}, h('div.part-label', {}, 'Exam tip'), h('p', {}, rule.tip)) : null,
         rule.name ? h('div.anchor', {}, rule.name) : null,
+        froDetails(rule),
         h('div.detail-history', {},
           h('h3', {}, 'History'),
           cs ? h('div.detail-history-row', {},

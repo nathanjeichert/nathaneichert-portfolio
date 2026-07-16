@@ -15,6 +15,46 @@ export const sectionsByDeck = new Map();
 /** Deck codes in bundle order. */
 export let deckCodes = [];
 
+// --- FRO excerpts (lazy second bundle; the app works fine without it) ---
+
+/** @type {Map<string, {t: string, crumb: string[], page: number, ht: boolean, html: string, doc: string}>} */
+export const froSections = new Map();
+
+/** @type {Map<string, string[]>} rule id -> FRO section ids */
+export const froMap = new Map();
+
+let froState = 'idle'; // idle | loading | ready | missing
+const froListeners = [];
+
+/** Kick off the FRO bundle fetch; safe to call more than once. */
+export function loadFro() {
+  if (froState !== 'idle') return;
+  froState = 'loading';
+  fetch('/study/fro.json')
+    .then(res => { if (!res.ok) throw new Error('fro.json ' + res.status); return res.json(); })
+    .then(data => {
+      for (const [id, s] of Object.entries(data.sections)) froSections.set(id, s);
+      for (const [rid, ids] of Object.entries(data.map)) froMap.set(rid, ids);
+      froState = 'ready';
+      froListeners.splice(0).forEach(fn => { try { fn(); } catch { /* view re-render is best-effort */ } });
+    })
+    .catch(err => { console.warn('FRO bundle unavailable', err); froState = 'missing'; });
+}
+
+export function froReady() { return froState === 'ready'; }
+
+/** Run fn once the FRO bundle arrives (no-op if it never does). */
+export function onFroReady(fn) {
+  if (froState === 'ready') fn();
+  else if (froState !== 'missing') froListeners.push(fn);
+}
+
+/** The FRO sections mapped to a rule (empty array until loaded/mapped). */
+export function froForRule(ruleId) {
+  const ids = froMap.get(ruleId) || [];
+  return ids.map(id => froSections.get(id)).filter(Boolean);
+}
+
 export async function loadData() {
   const res = await fetch('/study/rules.json');
   if (!res.ok) throw new Error('rules.json fetch failed: ' + res.status);

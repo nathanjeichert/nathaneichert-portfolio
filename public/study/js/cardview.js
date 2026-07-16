@@ -3,6 +3,7 @@
 import { h, tierChip } from './ui.js';
 import { effTier } from './scheduler.js';
 import { App } from './app.js';
+import { froForRule, froReady } from './data.js';
 
 /** Context line: subject · area · id · tier chip. */
 export function contextLine(rule, extra) {
@@ -42,5 +43,47 @@ export function answerBlock(rule) {
       h('p', {}, rule.tip),
     ) : null,
     rule.name ? h('div.anchor', {}, rule.name) : null,
+  );
+}
+
+/** One FRO excerpt: Themis-styled heading + verbatim section HTML. */
+function froExcerpt(sec) {
+  return h('div.fro-excerpt', {},
+    h('div.fro-head', {},
+      sec.ht ? h('span.fro-diamond', { title: 'Themis: highly tested' }) : null,
+      h('span.fro-title', {}, sec.t),
+      h('span.fro-crumb', {}, [...sec.crumb, ''].join(' › ')),
+      h('span.fro-page', {}, 'p. ' + sec.page),
+    ),
+    h('div.fro-body', { html: sec.html }),
+  );
+}
+
+/**
+ * The Final Review Outline panel for a rule: verbatim excerpt(s) of the
+ * mapped FRO section(s). Returns null when nothing is mapped/loaded yet.
+ */
+export function froPanel(rule) {
+  const secs = froForRule(rule.id);
+  if (!secs.length) {
+    return froReady() ? null : h('div.fro-panel.fro-pending', {},
+      h('div.part-label', {}, 'Final Review Outline'),
+      h('p.dim', {}, 'Outline excerpts are still loading…'));
+  }
+  return h('div.fro-panel', {},
+    h('div.fro-panel-head', {},
+      h('div.part-label.fro-label', {}, 'Final Review Outline'),
+      h('span.fro-src', {}, secs[0].doc),
+    ),
+    secs.map(froExcerpt),
+  );
+}
+
+/** Collapsible wrapper around froPanel for the reference views (intro/browse). */
+export function froDetails(rule, open = false) {
+  if (!froForRule(rule.id).length) return null;
+  return h('details.fro-details', { open },
+    h('summary', {}, 'Final Review Outline excerpt'),
+    froPanel(rule),
   );
 }

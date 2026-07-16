@@ -10,6 +10,7 @@ export function setKeyHandler(fn) { viewHandler = fn; }
 
 const SHORTCUTS = [
   ['Space', 'Reveal answer / next (intro)'],
+  ['Ctrl+Enter', 'Reveal while typing in the answer box'],
   ['1–9', 'Grade the card (1-3 fail · 4-6 partial · 7-9 clean)'],
   ['H', 'Hint ladder: bare skeleton, then guided'],
   ['U', 'Undo last grade'],

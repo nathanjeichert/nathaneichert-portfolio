@@ -5,7 +5,7 @@ import { h, clear, onSwipe } from '../ui.js';
 import { setKeyHandler } from '../keyboard.js';
 import { rulesByDeck, sectionsByDeck, deckCodes, deckTitle, deckChecklist, sectionArea, areaFreq } from '../data.js';
 import { App, isIntroduced, saveIntro } from '../app.js';
-import { contextLine, answerBlock } from '../cardview.js';
+import { contextLine, answerBlock, froDetails } from '../cardview.js';
 import { INTRO_SECONDS_PER_RULE } from '../constants.js';
 
 const estMin = n => Math.max(1, Math.round((n * INTRO_SECONDS_PER_RULE) / 60));
@@ -146,6 +146,7 @@ export function renderIntroRun(root, navigate, code) {
           contextLine(rule),
           h('div.prompt.prompt-intro', {}, rule.prompt),
           answerBlock(rule),
+          froDetails(rule),
         ),
         h('div.run-nav', {},
           h('button.btn', { disabled: idx === 0, onclick: prev }, '← Back'),

@@ -1,13 +1,14 @@
-// Drill: the core loop. Prompt -> (hint ladder) -> reveal -> grade 1-9 ->
-// immediate advance. Failed cards re-enter the session a few cards later.
+// Drill: the core loop. Prompt (+ optional typed attempt, hint ladder) ->
+// reveal (answer + FRO excerpt side by side, optional second go) ->
+// grade 1-9 -> immediate advance. Failed cards re-enter a few cards later.
 
 import { h, clear, toast, tierChip, fmtDuration } from '../ui.js';
 import { setKeyHandler } from '../keyboard.js';
-import { bundle, rulesById } from '../data.js';
+import { bundle, rulesById, onFroReady } from '../data.js';
 import { App, gradeCard, undoLast, cycleTier, toggleFlag, isIntroduced } from '../app.js';
 import { buildSession, effTier } from '../scheduler.js';
 import { recentAvg, streak, reviewsByDay, dayKey } from '../state.js';
-import { contextLine, promptBlock, skeletonBlock, answerBlock } from '../cardview.js';
+import { contextLine, promptBlock, skeletonBlock, answerBlock, froPanel } from '../cardview.js';
 import { gradeSound, revealSound, haptic } from '../audio.js';
 import { SCHED, GRADE_LABELS, ENDLESS_CHUNK } from '../constants.js';
 
@@ -50,7 +51,10 @@ export function renderDrill(root, navigate) {
   };
   let phase = 'prompt';    // prompt | revealed
   let hints = 0;           // 0 none, 1 bare, 2 guided
+  let attempt = '';        // typed answer from the prompt stage (optional)
+  let retry = '';          // post-reveal "type it again" box (optional)
   let busy = false;        // guards async actions against key auto-repeat / double-press
+  let live = true;         // false once another view takes over the root
 
   const isMobile = matchMedia('(pointer: coarse)').matches;
 
@@ -79,6 +83,42 @@ export function renderDrill(root, navigate) {
     };
   }
 
+  function attemptBox() {
+    return h('div.attempt-wrap', {},
+      h('div.part-label', {}, 'Your answer (optional)'),
+      h('textarea.attempt-input', {
+        placeholder: 'Type the rule from memory — or skip straight to Reveal…',
+        rows: 3,
+        oninput: e => { attempt = e.target.value; },
+        onkeydown: e => {
+          if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); reveal(); }
+        },
+      }, attempt),
+      isMobile ? null : h('div.attempt-hint.dim', {}, 'Ctrl+Enter to reveal · Esc to leave the box'),
+    );
+  }
+
+  function attemptEcho() {
+    if (!attempt.trim()) return null;
+    return h('div.attempt-echo', {},
+      h('div.part-label', {}, 'Your answer'),
+      h('p', {}, attempt),
+    );
+  }
+
+  function retryBox() {
+    return h('div.retry-wrap', {},
+      h('details', { open: !!retry },
+        h('summary.dim', {}, 'Type it again to lock it in (optional)'),
+        h('textarea.attempt-input', {
+          placeholder: 'One more rep with the answer in front of you…',
+          rows: 3,
+          oninput: e => { retry = e.target.value; },
+        }, retry),
+      ),
+    );
+  }
+
   function draw() {
     refill();
     if (session.pos >= session.queue.length) { drawSummary(); return; }
@@ -86,9 +126,29 @@ export function renderDrill(root, navigate) {
     if (!rule) { session.queue.splice(session.pos, 1); draw(); return; }
     const cs = App.cards.get(rule.id);
     const prog = progressBits();
+    const revealed = phase === 'revealed';
+    const fro = revealed ? froPanel(rule) : null;
+
+    const leftCard = h('div.card-surface.drill-card' + (revealed ? '.revealed' : ''), {
+      onclick: revealed ? undefined : e => {
+        if (e.target.closest('textarea, button, a, details, summary')) return;
+        reveal();
+      },
+    },
+      contextLine(rule, cs
+        ? h('span.ctx-seen', {}, `seen ${cs.seen}× · avg ${(recentAvg(cs) ?? 0).toFixed(1)}`)
+        : h('span.ctx-new', {}, 'new')),
+      promptBlock(rule),
+      hints >= 1 && !revealed ? skeletonBlock(rule.bare, 'Bare skeleton') : null,
+      hints >= 2 && !revealed ? skeletonBlock(rule.guided, 'Guided skeleton') : null,
+      revealed
+        ? [attemptEcho(), answerBlock(rule), retryBox()]
+        : [attemptBox(),
+           h('div.reveal-hint', {}, isMobile ? 'Tap to reveal' : 'Space to reveal · H for a hint')],
+    );
 
     clear(root).append(
-      h('section.drill', {},
+      h('section.drill' + (revealed && fro ? '.drill-wide' : ''), {},
         h('div.run-head', {},
           h('button.btn.btn-ghost', { onclick: endEarly }, '← End'),
           h('div.run-progress-label', {},
@@ -98,19 +158,9 @@ export function renderDrill(root, navigate) {
         h('div.progress-track', { title: endless ? 'progress toward daily goal' : '' },
           h('div.progress-fill', { style: `width:${prog.fill}%` })),
 
-        h('div.card-surface.drill-card' + (phase === 'revealed' ? '.revealed' : ''), {
-          onclick: phase === 'prompt' ? reveal : undefined,
-        },
-          contextLine(rule, cs
-            ? h('span.ctx-seen', {}, `seen ${cs.seen}× · avg ${(recentAvg(cs) ?? 0).toFixed(1)}`)
-            : h('span.ctx-new', {}, 'new')),
-          promptBlock(rule),
-          hints >= 1 && phase === 'prompt' ? skeletonBlock(rule.bare, 'Bare skeleton') : null,
-          hints >= 2 && phase === 'prompt' ? skeletonBlock(rule.guided, 'Guided skeleton') : null,
-          phase === 'prompt'
-            ? h('div.reveal-hint', {}, isMobile ? 'Tap to reveal' : 'Space to reveal · H for a hint')
-            : answerBlock(rule),
-        ),
+        revealed && fro
+          ? h('div.reveal-grid', {}, leftCard, h('div.card-surface.fro-card', {}, fro))
+          : leftCard,
 
         phase === 'prompt'
           ? h('div.drill-controls', {},
@@ -169,6 +219,8 @@ export function renderDrill(root, navigate) {
       session.pos++;
       phase = 'prompt';
       hints = 0;
+      attempt = '';
+      retry = '';
       draw();
     } finally { busy = false; }
   }
@@ -197,6 +249,8 @@ export function renderDrill(root, navigate) {
       session.queue[session.pos] = lastGraded.id;
       phase = 'revealed';
       hints = lastGraded.h;
+      attempt = '';
+      retry = '';
       toast(`Undid ${lastGraded.id} (was ${lastGraded.g})`);
       draw();
     } finally { busy = false; }
@@ -218,6 +272,8 @@ export function renderDrill(root, navigate) {
       session.queue = session.queue.filter((id, i) => i < session.pos || id !== rule.id);
       phase = 'prompt';
       hints = 0;
+      attempt = '';
+      retry = '';
       toast(`${rule.id} flagged for deletion (Settings → export the list)`, {
         actionLabel: 'Undo',
         action: async () => { await toggleFlag(rule.id); toast(`${rule.id} unflagged`); },
@@ -234,6 +290,7 @@ export function renderDrill(root, navigate) {
   }
 
   function drawSummary() {
+    live = false;
     const g = session.graded;
     const elapsed = Date.now() - session.startTs;
     const avg = g.length ? g.reduce((a, b) => a + b.g, 0) / g.length : 0;
@@ -282,6 +339,8 @@ export function renderDrill(root, navigate) {
     if (k === 'Escape') { endEarly(); return true; }
     return false;
   });
+  // If the FRO bundle lands mid-session, surface it on the current reveal.
+  onFroReady(() => { if (live && phase === 'revealed' && root.querySelector('.drill')) draw(); });
   draw();
 }
 
