@@ -268,8 +268,22 @@ html[data-theme="dark"] .toast-action { color: #b7bdff; }
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: .9rem; align-items: start;
 }
-/* widen the page while a side-by-side reveal is up */
-.view:has(.drill-wide) { max-width: 1220px; }
+/* widen the page while a side-by-side layout is up (drill reveal, intro walkthrough) */
+.view:has(.reveal-grid) { max-width: 1220px; }
+@media (min-width: 941px) {
+  /* keep the rule in view while the excerpt column scrolls */
+  .reveal-grid > :first-child {
+    position: sticky; top: 3.1rem;
+    max-height: calc(100dvh - 3.7rem); overflow-y: auto;
+  }
+  .dialog .reveal-grid > :first-child { top: .2rem; max-height: calc(86dvh - 5rem); }
+  /* …and the advance/grade controls reachable without scrolling past it */
+  .view:has(.reveal-grid) .grade-area,
+  .view:has(.reveal-grid) .run-nav {
+    position: sticky; bottom: 0; z-index: 5;
+    background: var(--bg); padding-bottom: .8rem;
+  }
+}
 .fro-card { background: var(--fro-paper); padding: 1rem 1.15rem; }
 .fro-panel-head { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; }
 .fro-label { color: var(--fro-blue); margin-bottom: 0; }
@@ -489,6 +503,7 @@ table.fro-table {
 .browse-meta { display: flex; align-items: center; gap: .4rem; }
 .browse-more { margin-top: .6rem; }
 
+.dialog.detail-wide { max-width: 1160px; }
 .detail-head { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; margin-bottom: .5rem; }
 .detail-close { margin-left: auto; font-size: 1.05rem; }
 .detail-history { margin-top: 1rem; border-top: 1px solid var(--border); padding-top: .6rem; }
@@ -555,7 +570,7 @@ table.fro-table {
 /* stack the reveal grid on narrow screens */
 @media (max-width: 940px) {
   .reveal-grid { grid-template-columns: minmax(0, 1fr); }
-  .view:has(.drill-wide) { max-width: 780px; }
+  .view:has(.reveal-grid) { max-width: 780px; }
 }
 
 /* ---------- small screens ---------- */

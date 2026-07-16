@@ -7,7 +7,7 @@ import { bundle, rulesById, deckCodes, deckTitle, deckChecklist } from '../data.
 import { App, cycleTier, toggleFlag } from '../app.js';
 import { effTier, priority } from '../scheduler.js';
 import { recentAvg } from '../state.js';
-import { froDetails } from '../cardview.js';
+import { withFro } from '../cardview.js';
 
 const filters = { q: '', deck: '', tier: '', status: '', sort: 'deck' };
 
@@ -107,20 +107,24 @@ export function renderBrowse(root, navigate, detailId) {
     const revs = App.reviews.filter(r => r.id === id);
     const flagged = App.flags.has(id);
 
+    const body = h('div.detail-body', {},
+      h('div.prompt.prompt-detail', {}, rule.prompt),
+      h('div.core', {}, rule.core.map(l => h('div.core-line', {}, l))),
+      rule.prose ? h('div.prose', {}, h('div.part-label', {}, 'Say it'), h('p', {}, rule.prose)) : null,
+      rule.tip ? h('div.tip', {}, h('div.part-label', {}, 'Exam tip'), h('p', {}, rule.tip)) : null,
+      rule.name ? h('div.anchor', {}, rule.name) : null,
+    );
+    const laid = withFro(body, rule);
+
     const overlay = h('div.overlay', { onclick: e => { if (e.target === overlay) close(); } },
-      h('div.dialog.detail', {},
+      h('div.dialog.detail' + (laid === body ? '' : '.detail-wide'), {},
         h('div.detail-head', {},
           h('span.ctx-id', {}, rule.id),
           tierChip(effTier(rule, App.tierOverrides)),
           h('span.dim', {}, `${rule.subject} · ${rule.area} · ${rule.section}`),
           h('button.btn.btn-ghost.detail-close', { onclick: close }, '✕'),
         ),
-        h('div.prompt.prompt-detail', {}, rule.prompt),
-        h('div.core', {}, rule.core.map(l => h('div.core-line', {}, l))),
-        rule.prose ? h('div.prose', {}, h('div.part-label', {}, 'Say it'), h('p', {}, rule.prose)) : null,
-        rule.tip ? h('div.tip', {}, h('div.part-label', {}, 'Exam tip'), h('p', {}, rule.tip)) : null,
-        rule.name ? h('div.anchor', {}, rule.name) : null,
-        froDetails(rule),
+        laid,
         h('div.detail-history', {},
           h('h3', {}, 'History'),
           cs ? h('div.detail-history-row', {},

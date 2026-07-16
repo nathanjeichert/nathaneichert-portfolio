@@ -3,9 +3,9 @@
 
 import { h, clear, onSwipe, toast, confirmDialog } from '../ui.js';
 import { setKeyHandler } from '../keyboard.js';
-import { rulesByDeck, sectionsByDeck, deckCodes, deckTitle, deckChecklist, sectionArea, areaFreq } from '../data.js';
+import { rulesByDeck, sectionsByDeck, deckCodes, deckTitle, deckChecklist, sectionArea, areaFreq, onFroReady } from '../data.js';
 import { App, isIntroduced, saveIntro, toggleFlag } from '../app.js';
-import { contextLine, answerBlock, froDetails } from '../cardview.js';
+import { contextLine, answerBlock, withFro } from '../cardview.js';
 import { INTRO_SECONDS_PER_RULE } from '../constants.js';
 
 const estMin = n => Math.max(1, Math.round((n * INTRO_SECONDS_PER_RULE) / 60));
@@ -186,12 +186,11 @@ export function renderIntroRun(root, navigate, code) {
         ),
         h('div.progress-track', {}, h('div.progress-fill', { style: `width:${((idx + 1) / rules.length) * 100}%` })),
         h('div.section-context', {}, `${rule.section} · ${posInSection}/${sameSection.length}`),
-        h('div.card-surface.intro-card', {},
+        withFro(h('div.card-surface.intro-card', {},
           contextLine(rule, flagged ? h('span.flag-badge', {}, 'DEL') : null),
           h('div.prompt.prompt-intro', {}, rule.prompt),
           answerBlock(rule),
-          froDetails(rule),
-        ),
+        ), rule),
         h('div.run-nav', {},
           h('button.btn', { disabled: idx === 0, onclick: prev }, '← Back'),
           h('button.btn.btn-small' + (flagged ? '' : '.btn-danger-ghost'), { onclick: flagCurrent },
@@ -220,5 +219,7 @@ export function renderIntroRun(root, navigate, code) {
     if (e.key === 'Escape') { savePos(idx); navigate('#/intro/' + code); return true; }
     return false;
   });
+  // If the FRO bundle lands mid-walkthrough, surface it on the current card.
+  onFroReady(() => { if (root.querySelector('.intro-run')) draw(); });
   draw();
 }

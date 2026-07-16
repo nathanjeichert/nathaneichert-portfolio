@@ -87,3 +87,18 @@ export function froDetails(rule, open = false) {
     froPanel(rule),
   );
 }
+
+/**
+ * Lay a rendered card out with its FRO excerpt: two columns on wide screens
+ * (rule left, outline right — same grid the drill reveal uses), otherwise the
+ * collapsible block appended inside the card. Returns the element to mount.
+ * 941px matches the reveal-grid stacking breakpoint in styles.css.
+ */
+export function withFro(cardEl, rule) {
+  if (froForRule(rule.id).length && matchMedia('(min-width: 941px)').matches) {
+    return h('div.reveal-grid', {}, cardEl, h('div.card-surface.fro-card', {}, froPanel(rule)));
+  }
+  const details = froDetails(rule);
+  if (details) cardEl.append(details);
+  return cardEl;
+}
