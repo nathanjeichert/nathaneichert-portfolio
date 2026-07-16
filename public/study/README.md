@@ -15,8 +15,9 @@ on Nathan's machine (`Scripts/build_app_data.py` builds `rules.json`;
 - `rules.json` — the 806 rule cards (prompt, core, prose, skeletons, weights).
 - `fro.json` — verbatim Themis Final Review Outline excerpts: `sections`
   (id → title/breadcrumb/page/html) + `map` (rule id → section ids). Shown
-  beside every revealed answer (drill), and as a collapsible block in
-  intro/browse. Loaded lazily; the app works without it.
+  beside the rule in a second column on wide screens (drill reveal, intro
+  walkthrough, browse detail), as a collapsible block below it on narrow
+  screens. Loaded lazily; the app works without it.
 - `fro/*.png` — flowchart/figure images referenced from section html.
 
 ## Updating the data bundles (after deletions/edits upstream)

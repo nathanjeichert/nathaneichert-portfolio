@@ -148,7 +148,7 @@ export function renderDrill(root, navigate) {
     );
 
     clear(root).append(
-      h('section.drill' + (revealed && fro ? '.drill-wide' : ''), {},
+      h('section.drill', {},
         h('div.run-head', {},
           h('button.btn.btn-ghost', { onclick: endEarly }, '← End'),
           h('div.run-progress-label', {},
