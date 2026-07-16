@@ -3,11 +3,11 @@
 
 import { h, clear, toast, tierChip, gradeDot, sparkline, fmtDue, fmtAgo } from '../ui.js';
 import { setKeyHandler } from '../keyboard.js';
-import { bundle, rulesById, deckCodes, deckTitle, deckChecklist } from '../data.js';
+import { bundle, rulesById, deckCodes, deckTitle, deckChecklist, froReady, onFroReady } from '../data.js';
 import { App, cycleTier, toggleFlag } from '../app.js';
 import { effTier, priority } from '../scheduler.js';
 import { recentAvg } from '../state.js';
-import { froDetails } from '../cardview.js';
+import { froPanel, froDetails } from '../cardview.js';
 
 const filters = { q: '', deck: '', tier: '', status: '', sort: 'deck' };
 
@@ -107,20 +107,29 @@ export function renderBrowse(root, navigate, detailId) {
     const revs = App.reviews.filter(r => r.id === id);
     const flagged = App.flags.has(id);
 
+    // Wide screens: FRO excerpt in a second column; narrow: collapsible below.
+    const sideBySide = matchMedia('(min-width: 941px)').matches;
+    const fro = sideBySide ? froPanel(rule) : null;
+    const ruleParts = [
+      h('div.prompt.prompt-detail', {}, rule.prompt),
+      h('div.core', {}, rule.core.map(l => h('div.core-line', {}, l))),
+      rule.prose ? h('div.prose', {}, h('div.part-label', {}, 'Say it'), h('p', {}, rule.prose)) : null,
+      rule.tip ? h('div.tip', {}, h('div.part-label', {}, 'Exam tip'), h('p', {}, rule.tip)) : null,
+      rule.name ? h('div.anchor', {}, rule.name) : null,
+      sideBySide ? null : froDetails(rule),
+    ];
+
     const overlay = h('div.overlay', { onclick: e => { if (e.target === overlay) close(); } },
-      h('div.dialog.detail', {},
+      h('div.dialog.detail' + (fro ? '.detail-wide' : ''), {},
         h('div.detail-head', {},
           h('span.ctx-id', {}, rule.id),
           tierChip(effTier(rule, App.tierOverrides)),
           h('span.dim', {}, `${rule.subject} · ${rule.area} · ${rule.section}`),
           h('button.btn.btn-ghost.detail-close', { onclick: close }, '✕'),
         ),
-        h('div.prompt.prompt-detail', {}, rule.prompt),
-        h('div.core', {}, rule.core.map(l => h('div.core-line', {}, l))),
-        rule.prose ? h('div.prose', {}, h('div.part-label', {}, 'Say it'), h('p', {}, rule.prose)) : null,
-        rule.tip ? h('div.tip', {}, h('div.part-label', {}, 'Exam tip'), h('p', {}, rule.tip)) : null,
-        rule.name ? h('div.anchor', {}, rule.name) : null,
-        froDetails(rule),
+        fro
+          ? h('div.detail-grid', {}, h('div.detail-main', {}, ruleParts), h('div.detail-fro', {}, fro))
+          : ruleParts,
         h('div.detail-history', {},
           h('h3', {}, 'History'),
           cs ? h('div.detail-history-row', {},
@@ -141,6 +150,8 @@ export function renderBrowse(root, navigate, detailId) {
       ),
     );
     function close() { overlay.remove(); }
+    // If the FRO bundle lands while the dialog is up, re-open with the excerpt.
+    if (!froReady()) onFroReady(() => { if (overlay.isConnected) { close(); openDetail(id); } });
     document.body.append(overlay);
     overlay.tabIndex = -1;
     overlay.addEventListener('keydown', e => {

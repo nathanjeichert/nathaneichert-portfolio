@@ -268,8 +268,15 @@ html[data-theme="dark"] .toast-action { color: #b7bdff; }
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: .9rem; align-items: start;
 }
-/* widen the page while a side-by-side reveal is up */
-.view:has(.drill-wide) { max-width: 1220px; }
+/* widen the page while a side-by-side reveal is up (drill + intro walkthrough) */
+.view:has(.drill-wide), .view:has(.intro-wide) { max-width: 1220px; }
+/* keep the rule card in view while a long FRO excerpt scrolls */
+@media (min-width: 941px) {
+  .reveal-grid > :first-child {
+    position: sticky; top: 3.4rem;
+    max-height: calc(100dvh - 4.6rem); overflow-y: auto;
+  }
+}
 .fro-card { background: var(--fro-paper); padding: 1rem 1.15rem; }
 .fro-panel-head { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; }
 .fro-label { color: var(--fro-blue); margin-bottom: 0; }
@@ -491,6 +498,17 @@ table.fro-table {
 
 .detail-head { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; margin-bottom: .5rem; }
 .detail-close { margin-left: auto; font-size: 1.05rem; }
+/* wide detail dialog: rule on the left, FRO excerpt on the right */
+.dialog.detail-wide { max-width: 1120px; }
+.detail-grid {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.1rem; align-items: start;
+}
+.detail-grid .detail-main { position: sticky; top: 0; }
+.detail-fro {
+  background: var(--fro-paper); border: 1px solid var(--border);
+  border-radius: 10px; padding: .8rem 1rem;
+}
 .detail-history { margin-top: 1rem; border-top: 1px solid var(--border); padding-top: .6rem; }
 .detail-history-row { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; }
 
@@ -555,7 +573,9 @@ table.fro-table {
 /* stack the reveal grid on narrow screens */
 @media (max-width: 940px) {
   .reveal-grid { grid-template-columns: minmax(0, 1fr); }
-  .view:has(.drill-wide) { max-width: 780px; }
+  .view:has(.drill-wide), .view:has(.intro-wide) { max-width: 780px; }
+  .detail-grid { grid-template-columns: minmax(0, 1fr); }
+  .detail-grid .detail-main { position: static; }
 }
 
 /* ---------- small screens ---------- */

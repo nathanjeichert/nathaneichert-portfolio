@@ -3,9 +3,9 @@
 
 import { h, clear, onSwipe, toast, confirmDialog } from '../ui.js';
 import { setKeyHandler } from '../keyboard.js';
-import { rulesByDeck, sectionsByDeck, deckCodes, deckTitle, deckChecklist, sectionArea, areaFreq } from '../data.js';
+import { rulesByDeck, sectionsByDeck, deckCodes, deckTitle, deckChecklist, sectionArea, areaFreq, onFroReady } from '../data.js';
 import { App, isIntroduced, saveIntro, toggleFlag } from '../app.js';
-import { contextLine, answerBlock, froDetails } from '../cardview.js';
+import { contextLine, answerBlock, froPanel, froDetails } from '../cardview.js';
 import { INTRO_SECONDS_PER_RULE } from '../constants.js';
 
 const estMin = n => Math.max(1, Math.round((n * INTRO_SECONDS_PER_RULE) / 60));
@@ -178,20 +178,28 @@ export function renderIntroRun(root, navigate, code) {
     const sameSection = rules.filter(r => r.section === rule.section);
     const posInSection = sameSection.findIndex(r => r.id === rule.id) + 1;
 
+    // Wide screens: FRO excerpt beside the card (like drill's reveal).
+    // Narrow screens: keep the collapsible block below the answer.
+    const sideBySide = matchMedia('(min-width: 941px)').matches;
+    const fro = sideBySide ? froPanel(rule) : null;
+    const card = h('div.card-surface.intro-card', {},
+      contextLine(rule, flagged ? h('span.flag-badge', {}, 'DEL') : null),
+      h('div.prompt.prompt-intro', {}, rule.prompt),
+      answerBlock(rule),
+      sideBySide ? null : froDetails(rule),
+    );
+
     clear(root).append(
-      h('section.intro-run', {},
+      h('section.intro-run' + (fro ? '.intro-wide' : ''), {},
         h('div.run-head', {},
           h('button.btn.btn-ghost', { onclick: () => { savePos(idx); navigate('#/intro/' + code); } }, '← ' + deckTitle(code)),
           h('div.run-progress-label', {}, `${idx + 1} / ${rules.length}`),
         ),
         h('div.progress-track', {}, h('div.progress-fill', { style: `width:${((idx + 1) / rules.length) * 100}%` })),
         h('div.section-context', {}, `${rule.section} · ${posInSection}/${sameSection.length}`),
-        h('div.card-surface.intro-card', {},
-          contextLine(rule, flagged ? h('span.flag-badge', {}, 'DEL') : null),
-          h('div.prompt.prompt-intro', {}, rule.prompt),
-          answerBlock(rule),
-          froDetails(rule),
-        ),
+        fro
+          ? h('div.reveal-grid', {}, card, h('div.card-surface.fro-card', {}, fro))
+          : card,
         h('div.run-nav', {},
           h('button.btn', { disabled: idx === 0, onclick: prev }, '← Back'),
           h('button.btn.btn-small' + (flagged ? '' : '.btn-danger-ghost'), { onclick: flagCurrent },
@@ -200,7 +208,6 @@ export function renderIntroRun(root, navigate, code) {
         ),
       ),
     );
-    const card = root.querySelector('.intro-card');
     onSwipe(root.querySelector('.intro-run'), { left: next, right: prev });
     card.scrollTop = 0;
     window.scrollTo(0, 0);
@@ -220,5 +227,7 @@ export function renderIntroRun(root, navigate, code) {
     if (e.key === 'Escape') { savePos(idx); navigate('#/intro/' + code); return true; }
     return false;
   });
+  // If the FRO bundle lands mid-walkthrough, surface it on the current card.
+  onFroReady(() => { if (root.querySelector('.intro-run')) draw(); });
   draw();
 }
