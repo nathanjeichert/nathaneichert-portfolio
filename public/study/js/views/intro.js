@@ -1,10 +1,10 @@
 // Subject Intro: deck list -> subject map (checklist + section outline) ->
 // guided walkthrough (prompt+answer together, no grading). Progress persists.
 
-import { h, clear, onSwipe } from '../ui.js';
+import { h, clear, onSwipe, toast, confirmDialog } from '../ui.js';
 import { setKeyHandler } from '../keyboard.js';
 import { rulesByDeck, sectionsByDeck, deckCodes, deckTitle, deckChecklist, sectionArea, areaFreq } from '../data.js';
-import { App, isIntroduced, saveIntro } from '../app.js';
+import { App, isIntroduced, saveIntro, toggleFlag } from '../app.js';
 import { contextLine, answerBlock, froDetails } from '../cardview.js';
 import { INTRO_SECONDS_PER_RULE } from '../constants.js';
 
@@ -20,6 +20,19 @@ export function renderIntroList(root, navigate) {
     return { code, rules, done, started, weight };
   }).sort((a, b) => (a.done - b.done) || (b.weight - a.weight));
 
+  const notDone = items.filter(it => !it.done);
+
+  async function markAll() {
+    const ok = await confirmDialog(
+      `Mark all ${notDone.length} remaining deck${notDone.length === 1 ? '' : 's'} as introduced? Their cards enter the drill rotation immediately.`,
+      { yes: 'Mark all introduced' });
+    if (!ok) return;
+    for (const it of notDone) App.introProgress[it.code] = it.rules.length;
+    await saveIntro();
+    toast('All decks marked introduced');
+    renderIntroList(root, navigate);
+  }
+
   clear(root).append(
     h('section.intro-list', {},
       h('h1', {}, 'Subject intros'),
@@ -32,6 +45,10 @@ export function renderIntroList(root, navigate) {
               : it.started ? `${it.started}/${it.rules.length} · resume`
               : `${it.rules.length} rules · ~${estMin(it.rules.length)} min`),
         ))),
+      notDone.length ? h('p.intro-markall', {},
+        h('button.btn.btn-ghost.btn-small', { onclick: markAll },
+          `Mark all ${notDone.length} remaining as introduced`),
+      ) : null,
     ),
   );
   setKeyHandler(e => {
@@ -84,6 +101,25 @@ export function renderIntroMap(root, navigate, code) {
           h('span.btn-sub', {}, 'Enter · Space/→ steps forward'),
         ),
       ),
+      h('p.intro-markall', {},
+        done
+          ? h('button.btn.btn-ghost.btn-small', {
+              onclick: async () => {
+                App.introProgress[code] = 0;
+                await saveIntro();
+                toast(`${deckTitle(code)} intro reset`);
+                renderIntroMap(root, navigate, code);
+              },
+            }, 'Reset intro progress')
+          : h('button.btn.btn-ghost.btn-small', {
+              onclick: async () => {
+                App.introProgress[code] = rules.length;
+                await saveIntro();
+                toast(`${deckTitle(code)} marked introduced — cards are in the rotation`);
+                renderIntroMap(root, navigate, code);
+              },
+            }, 'Mark as introduced without walking through'),
+      ),
     ),
   );
 
@@ -128,8 +164,16 @@ export function renderIntroRun(root, navigate, code) {
     });
   }
 
+  async function flagCurrent() {
+    const rule = rules[idx];
+    const on = await toggleFlag(rule.id);
+    toast(on ? `${rule.id} flagged for deletion (Settings → export the list)` : `${rule.id} unflagged`);
+    draw();
+  }
+
   function draw() {
     const rule = rules[idx];
+    const flagged = App.flags.has(rule.id);
     // position within section
     const sameSection = rules.filter(r => r.section === rule.section);
     const posInSection = sameSection.findIndex(r => r.id === rule.id) + 1;
@@ -143,13 +187,15 @@ export function renderIntroRun(root, navigate, code) {
         h('div.progress-track', {}, h('div.progress-fill', { style: `width:${((idx + 1) / rules.length) * 100}%` })),
         h('div.section-context', {}, `${rule.section} · ${posInSection}/${sameSection.length}`),
         h('div.card-surface.intro-card', {},
-          contextLine(rule),
+          contextLine(rule, flagged ? h('span.flag-badge', {}, 'DEL') : null),
           h('div.prompt.prompt-intro', {}, rule.prompt),
           answerBlock(rule),
           froDetails(rule),
         ),
         h('div.run-nav', {},
           h('button.btn', { disabled: idx === 0, onclick: prev }, '← Back'),
+          h('button.btn.btn-small' + (flagged ? '' : '.btn-danger-ghost'), { onclick: flagCurrent },
+            flagged ? 'Unflag (D)' : 'Flag for deletion (D)'),
           h('button.btn.btn-primary', { onclick: next }, idx === rules.length - 1 ? 'Finish ✓' : 'Next →'),
         ),
       ),
@@ -167,8 +213,10 @@ export function renderIntroRun(root, navigate, code) {
   function prev() { if (idx > 0) { idx--; savePos(idx); draw(); } }
 
   setKeyHandler(e => {
+    if (e.repeat) return true;
     if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'Enter') { next(); return true; }
     if (e.key === 'ArrowLeft') { prev(); return true; }
+    if (e.key.toLowerCase() === 'd') { flagCurrent(); return true; }
     if (e.key === 'Escape') { savePos(idx); navigate('#/intro/' + code); return true; }
     return false;
   });

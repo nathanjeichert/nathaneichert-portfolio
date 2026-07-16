@@ -180,7 +180,8 @@ export function renderDrill(root, navigate) {
 
         h('div.drill-foot.dim', {},
           hints ? h('span.hint-flag', {}, `hints: ${hints} `) : null,
-          isMobile ? null : 'U undo · T re-tier · D flag for deletion · ? shortcuts',
+          h('button.btn.btn-danger-ghost.btn-small', { onclick: flag }, 'Flag for deletion' + (isMobile ? '' : ' (D)')),
+          isMobile ? null : h('span.foot-keys', {}, 'U undo · T re-tier · ? shortcuts'),
         ),
       ),
     );

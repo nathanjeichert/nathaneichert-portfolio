@@ -426,8 +426,12 @@ table.fro-table {
 .g-low-text { color: var(--bad); }
 .g-mid-text { color: var(--warn); }
 .g-high-text { color: var(--good); }
-.drill-foot { text-align: center; margin-top: 1rem; }
+.drill-foot {
+  display: flex; align-items: center; justify-content: center; gap: .8rem;
+  flex-wrap: wrap; margin-top: 1rem;
+}
 .hint-flag { color: var(--warn); font-weight: 600; }
+.intro-markall { text-align: center; margin: .6rem 0 0; }
 
 .grade-flash {
   position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%) scale(.7);

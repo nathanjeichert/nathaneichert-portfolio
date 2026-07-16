@@ -9,7 +9,7 @@
 //     upstream) is picked up in the background even without a VERSION bump;
 //     clients get a "rules-updated" message and show a reload toast.
 
-const VERSION = 'v3';
+const VERSION = 'v4';
 const CACHE = 'barrules-' + VERSION;
 
 const SHELL = [
