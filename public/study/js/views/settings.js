@@ -4,11 +4,11 @@ import { h, clear, toast, confirmDialog, download } from '../ui.js';
 import { setKeyHandler } from '../keyboard.js';
 import { bundle, deckCodes, deckTitle, rulesById } from '../data.js';
 import {
-  App, saveSettings, saveFlags, saveMeta, loadPersisted,
+  App, saveSettings, saveFlags, saveMeta, loadPersisted, migrateSettings,
 } from '../app.js';
 import { getLog, replaceAll, wipeAll } from '../store.js';
-import { applyAppearance } from '../theme.js';
-import { SESSION_LENGTH_CHOICES } from '../constants.js';
+import { applyAppearance, TEXT_SCALE_MIN, TEXT_SCALE_MAX } from '../theme.js';
+import { SESSION_LENGTH_CHOICES, BREAK_REMINDER_CHOICES } from '../constants.js';
 
 const EXPORT_VERSION = 1;
 
@@ -69,6 +69,7 @@ export function renderSettings(root, navigate) {
     try { data = JSON.parse(await file.text()); }
     catch { toast('Not a valid JSON file'); return; }
     if (data.app !== 'barrules' || !Array.isArray(data.log)) { toast('Not a Bar Rules export file'); return; }
+    migrateSettings(data.settings);   // backups from older app versions carry old keys
     const ok = await confirmDialog(
       `Replace all local progress with this export from ${data.exported?.slice(0, 10) || 'unknown date'} (${data.log.length} log entries)?`,
       { yes: 'Import & replace', danger: true });
@@ -93,8 +94,25 @@ export function renderSettings(root, navigate) {
       h('h1', {}, 'Settings'),
 
       h('h2', {}, 'Appearance'),
-      row('Theme', segmented('theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']], () => applyAppearance(s))),
-      row('Text size', segmented('textSize', [['s', 'S'], ['m', 'M'], ['l', 'L'], ['xl', 'XL']], () => applyAppearance(s))),
+      row('Theme', segmented('theme', [['system', 'System'], ['light', 'Light'], ['sepia', 'Sepia'], ['dark', 'Dark']], () => applyAppearance(s)),
+        'Sepia is a warm paper tone — easiest on the eyes for long sessions'),
+      row('Text size', (() => {
+        const val = h('span.stepper-val', {}, (s.textScale || 100) + '%');
+        const set = async delta => {
+          s.textScale = Math.max(TEXT_SCALE_MIN, Math.min(TEXT_SCALE_MAX, (Number(s.textScale) || 100) + delta));
+          val.textContent = s.textScale + '%';
+          applyAppearance(s);
+          await saveSettings();
+        };
+        return h('div.stepper', {},
+          h('button.btn.btn-small', { 'aria-label': 'Smaller text', onclick: () => set(-5) }, 'A−'),
+          val,
+          h('button.btn.btn-small', { 'aria-label': 'Larger text', onclick: () => set(+5) }, 'A+'),
+        );
+      })(), `Scales all app text (${TEXT_SCALE_MIN}–${TEXT_SCALE_MAX}%)`),
+      row('Line spacing', segmented('lineSpacing', [['normal', 'Normal'], ['relaxed', 'Relaxed'], ['loose', 'Loose']], () => applyAppearance(s))),
+      row('Fast reading', toggle('bionic', () => applyAppearance(s)),
+        'Bolds the first part of each word in rule & outline text to guide the eye'),
 
       h('h2', {}, 'Sessions'),
       row('Session length', segmented('sessionLength', SESSION_LENGTH_CHOICES), '∞ keeps serving cards until you stop'),
@@ -108,6 +126,8 @@ export function renderSettings(root, navigate) {
       ), 'Drill sessions draw only from this deck'),
       row('Include T3 cards', toggle('includeT3'), 'Minutiae / duplicates stay out of drills by default'),
       row('Require subject intro', toggle('requireIntro'), 'New cards enter drills only after their deck’s intro'),
+      row('Break reminder', segmented('breakEvery', BREAK_REMINDER_CHOICES),
+        'A gentle nudge after drilling this long without a pause'),
 
       h('h2', {}, 'Feedback'),
       row('Sound on grade', toggle('sound')),

@@ -7,6 +7,7 @@ import { App, loadPersisted } from './app.js';
 import { h, clear, toast } from './ui.js';
 import { initKeyboard } from './keyboard.js';
 import { applyAppearance } from './theme.js';
+import { initBionic } from './bionic.js';
 import { EXPORT_REMINDER } from './constants.js';
 import { renderHome } from './views/home.js';
 import { renderDrill } from './views/drill.js';
@@ -121,6 +122,7 @@ async function boot() {
   loadFro();   // FRO excerpts load in the background; views pick them up when ready
   await initStore();
   await loadPersisted();
+  initBionic();
   applyAppearance(App.settings);
   initKeyboard(navigate);
   window.addEventListener('hashchange', route);
