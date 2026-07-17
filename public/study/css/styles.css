@@ -1,7 +1,10 @@
-/* Bar Rules — typography-first, calm, high-contrast. Light/dark via
-   html[data-theme]; text scale via html[data-size]. */
+/* Bar Rules — typography-first, calm, high-contrast. Light/sepia/dark via
+   html[data-theme]; text scale via the --txt factor (set inline by theme.js);
+   line spacing via html[data-spacing]; fast-reading via html[data-bionic]. */
 
 :root {
+  --leading: 1.5;
+  --leading-tight: 1.35;
   --bg: #fafaf8;
   --surface: #ffffff;
   --surface-2: #f2f2ee;
@@ -28,6 +31,35 @@
   --fro-table-border: #b9b3a6;
   --fro-tip: #eaf3fb;
   --fro-ca: #e7efdd;
+}
+
+/* Paper mode: warm cream surfaces, dark-brown ink, bronze accent — tuned for
+   long sessions (lower blue light, softer contrast than pure light mode). */
+html[data-theme="sepia"] {
+  --bg: #f2ead8;
+  --surface: #faf4e5;
+  --surface-2: #ece2cb;
+  --ink: #41382a;
+  --muted: #7f7259;
+  --border: #ddd1b4;
+  --accent: #7a5c33;
+  --accent-ink: #faf4e5;
+  --accent-soft: #ead9bd;
+  --bad: #a33d2a;
+  --warn: #8a651a;
+  --good: #4e7238;
+  --bad-soft: #f0dcd0;
+  --warn-soft: #f2e5bb;
+  --good-soft: #e2e7cd;
+  --ring-track: #e0d5b9;
+  --shadow: 0 1px 3px rgba(92, 74, 40, .10), 0 4px 16px rgba(92, 74, 40, .07);
+  --fro-blue: #3c5a75;
+  --fro-brown: #8d6844;
+  --fro-diamond: #b98a5d;
+  --fro-paper: #f7f0dd;
+  --fro-table-border: #b3a687;
+  --fro-tip: #e7e6d0;
+  --fro-ca: #e2e6cc;
 }
 
 html[data-theme="dark"] {
@@ -57,10 +89,20 @@ html[data-theme="dark"] {
   --fro-ca: #222b1c;
 }
 
-html { font-size: 16.5px; }
-html[data-size="s"] { font-size: 15px; }
-html[data-size="l"] { font-size: 18px; }
-html[data-size="xl"] { font-size: 20px; }
+/* Global text scale: everything in the app is rem-based, so one factor
+   (80%–150%, Settings → Text size) resizes the whole UI proportionally. */
+html { font-size: calc(16.5px * var(--txt, 1)); }
+
+/* Line spacing presets (Settings → Line spacing). */
+html[data-spacing="relaxed"] { --leading: 1.7; --leading-tight: 1.5; }
+html[data-spacing="loose"] { --leading: 1.85; --leading-tight: 1.6; }
+
+/* Fast reading (Settings → Fast reading): bionic.js wraps word starts in
+   .bx spans; they only gain weight while html[data-bionic] is present, so
+   the wrappers are invisible when the setting is off. */
+html[data-bionic] .bx { font-weight: 700; }
+html[data-bionic] .prompt { font-weight: 400; }
+html[data-bionic] .prompt .bx { font-weight: 750; }
 
 * { box-sizing: border-box; }
 
@@ -69,7 +111,7 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  line-height: 1.5;
+  line-height: var(--leading);
   -webkit-font-smoothing: antialiased;
   min-height: 100dvh;
 }
@@ -181,6 +223,7 @@ kbd {
   font: inherit; font-weight: 700; cursor: pointer; padding: 0;
 }
 html[data-theme="dark"] .toast-action { color: #b7bdff; }
+html[data-theme="sepia"] .toast-action { color: #e8c99a; }
 
 /* ---------- overlay / dialogs ---------- */
 .overlay {
@@ -213,7 +256,7 @@ html[data-theme="dark"] .toast-action { color: #b7bdff; }
 .ctx-seen, .ctx-new { margin-left: auto; font-size: .75rem; }
 .ctx-new { color: var(--accent); font-weight: 700; }
 
-.prompt { font-size: 1.35rem; font-weight: 650; line-height: 1.35; letter-spacing: -.008em; margin: .2rem 0 .6rem; }
+.prompt { font-size: 1.35rem; font-weight: 650; line-height: var(--leading-tight); letter-spacing: -.008em; margin: .2rem 0 .6rem; }
 .prompt-intro { font-size: 1.15rem; }
 .prompt-detail { font-size: 1.15rem; }
 
@@ -230,13 +273,13 @@ html[data-theme="dark"] .toast-action { color: #b7bdff; }
 @keyframes reveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
 .core { margin: .5rem 0 .2rem; }
-.core-line { font-size: 1.12rem; line-height: 1.5; margin: .12rem 0; }
+.core-line { font-size: 1.12rem; line-height: var(--leading); margin: .12rem 0; }
 
 .prose {
   border-left: 3px solid var(--accent); background: var(--accent-soft);
   border-radius: 0 10px 10px 0; padding: .7rem .95rem; margin: .9rem 0;
 }
-.prose p { margin: 0; font-family: Charter, Georgia, Cambria, "Times New Roman", serif; font-size: 1.08rem; line-height: 1.55; }
+.prose p { margin: 0; font-family: Charter, Georgia, Cambria, "Times New Roman", serif; font-size: 1.08rem; line-height: calc(var(--leading) + .05); }
 
 .tip { border-left: 3px solid var(--warn); background: var(--warn-soft); border-radius: 0 10px 10px 0; padding: .6rem .95rem; margin: .9rem 0; }
 .tip p { margin: 0; font-size: .95rem; }
@@ -298,7 +341,7 @@ html[data-theme="dark"] .toast-action { color: #b7bdff; }
 }
 .fro-crumb { font-size: .74rem; color: var(--muted); }
 .fro-page { margin-left: auto; font-size: .72rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.fro-body { font-size: .93rem; line-height: 1.5; }
+.fro-body { font-size: .93rem; line-height: var(--leading); }
 .fro-body p { margin: .45rem 0; }
 .fro-body ul { margin: .35rem 0 .55rem; padding-left: 1.25rem; }
 .fro-body li { margin: .18rem 0; }
@@ -402,7 +445,7 @@ table.fro-table {
 }
 .checklist-card h2 { margin: 0 0 .4rem; color: var(--accent); }
 .checklist { margin: 0; padding-left: 1.3rem; }
-.checklist li { margin: .22rem 0; line-height: 1.45; }
+.checklist li { margin: .22rem 0; line-height: var(--leading); }
 
 .section-outline { margin: 1rem 0; }
 .section-row {
@@ -556,6 +599,12 @@ table.fro-table {
 }
 .seg:last-child { border-right: none; }
 .seg.active { background: var(--accent); color: var(--accent-ink); font-weight: 650; }
+
+.stepper { display: flex; align-items: center; gap: .4rem; }
+.stepper-val {
+  min-width: 3.4rem; text-align: center; font-variant-numeric: tabular-nums;
+  font-weight: 650; font-size: .92rem;
+}
 
 .num-input {
   font: inherit; width: 5rem; padding: .4rem .5rem; border-radius: 10px;

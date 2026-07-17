@@ -40,6 +40,16 @@ the old cached shell forever.
 
 - Vanilla ES modules, hash routing, no framework. Entry: `js/main.js`.
 - All scheduler tuning constants: `js/constants.js`.
+- Reading comfort (Settings → Appearance): three themes (light / sepia
+  "paper" / dark), a global 80–150% text-size stepper, line-spacing presets,
+  and a fast-reading ("bionic") mode. `js/theme.js` applies them all to the
+  root element (`data-theme`/`data-spacing`/`data-bionic` + the `--txt` scale
+  factor) and mirrors them to localStorage for the no-flash pre-paint script
+  in `index.html`. `js/bionic.js` does the word-prefix bolding with a
+  MutationObserver — wrappers are inert spans, active only under
+  `html[data-bionic]`, so no framework or font dependency is involved.
+- Old profiles/backups with `textSize` (s/m/l/xl) are converted to the numeric
+  `textScale` by `migrateSettings()` in `js/app.js`.
 - Storage: IndexedDB (`barrules` db: append-only review `log` + `kv`),
   localStorage fallback. Undo appends a tombstone; history is never mutated.
 - The service worker is at the public root (`/study-sw.js`) so its scope can

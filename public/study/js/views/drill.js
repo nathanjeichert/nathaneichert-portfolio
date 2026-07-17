@@ -46,6 +46,7 @@ export function renderDrill(root, navigate) {
     pos: 0,
     graded: [],            // {id, g, h, wasRequeue}
     startTs: Date.now(),
+    lastBreakNudge: Date.now(),
     label,
     nNew, nDue,
   };
@@ -223,7 +224,17 @@ export function renderDrill(root, navigate) {
       attempt = '';
       retry = '';
       draw();
+      maybeBreakNudge();
     } finally { busy = false; }
+  }
+
+  // Sustained-attention guard: a soft toast after breakEvery minutes of
+  // uninterrupted grading (Settings → Break reminder; 0 = off).
+  function maybeBreakNudge() {
+    const mins = App.settings.breakEvery;
+    if (!mins || Date.now() - session.lastBreakNudge < mins * 60000) return;
+    session.lastBreakNudge = Date.now();
+    toast(`${mins} min straight — micro-break? Stand up, sip water, look far away.`, { duration: 8000 });
   }
 
   function flashGrade(g) {

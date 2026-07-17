@@ -57,9 +57,14 @@ export const EXPORT_REMINDER = { days: 4, minReviews: 20 };
 export const DB_NAME = 'barrules';
 export const LS_PREFIX = 'barrules.';
 
+export const BREAK_REMINDER_CHOICES = [[0, 'Off'], [25, '25m'], [45, '45m']];
+
 export const DEFAULT_SETTINGS = {
-  theme: 'system',          // system | light | dark
-  textSize: 'm',            // s | m | l | xl
+  theme: 'system',          // system | light | sepia | dark
+  textScale: 100,           // % of base type size (80–150 via the Settings stepper)
+  lineSpacing: 'normal',    // normal | relaxed | loose
+  bionic: false,            // fast-reading: bold word starts in rule/FRO text
+  breakEvery: 25,           // minutes of continuous drilling before a nudge (0 = off)
   scheduling: 'continuous', // continuous (no intervals; always serve the best card) | spaced (SM-2-lite)
   sessionLength: SESSION_DEFAULT_LENGTH,   // number | 'endless'
   includeT3: false,

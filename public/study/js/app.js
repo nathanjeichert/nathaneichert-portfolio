@@ -26,16 +26,31 @@ export function recompute() {
   App.reviews = folded.reviews;
 }
 
-export async function loadPersisted() {
-  const stored = await kvGet('settings', {});
+/**
+ * In-place upgrades for settings objects from older app versions (stored
+ * profiles and imported backups both pass through here).
+ */
+export function migrateSettings(s) {
+  if (!s) return s;
   // Migration (July 2026): continuous/endless replaced interval scheduling as
   // the default. Profiles saved before that carry old keys — adopt the new
   // defaults for them rather than pinning them to the old behavior.
-  if (stored.scheduling === undefined) {
-    delete stored.sessionLength;
-    delete stored.cramMode;
+  if (s.scheduling === undefined) {
+    delete s.sessionLength;
+    delete s.cramMode;
   }
-  App.settings = { ...DEFAULT_SETTINGS, ...stored };
+  // Migration (July 2026, readability update): the s/m/l/xl textSize presets
+  // became a numeric textScale percentage.
+  if (s.textScale === undefined && s.textSize) {
+    s.textScale = { s: 91, m: 100, l: 109, xl: 121 }[s.textSize] || 100;
+  }
+  delete s.textSize;
+  return s;
+}
+
+export async function loadPersisted() {
+  const stored = await kvGet('settings', {});
+  App.settings = { ...DEFAULT_SETTINGS, ...migrateSettings(stored) };
   App.tierOverrides = await kvGet('tierOverrides', {});
   App.flags = new Set(await kvGet('deleteFlags', []));
   App.introProgress = await kvGet('introProgress', {});

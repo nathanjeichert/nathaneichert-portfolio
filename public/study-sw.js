@@ -9,7 +9,7 @@
 //     upstream) is picked up in the background even without a VERSION bump;
 //     clients get a "rules-updated" message and show a reload toast.
 
-const VERSION = 'v5';
+const VERSION = 'v6';
 const CACHE = 'barrules-' + VERSION;
 
 const SHELL = [
@@ -29,6 +29,7 @@ const SHELL = [
   '/study/js/ui.js',
   '/study/js/keyboard.js',
   '/study/js/theme.js',
+  '/study/js/bionic.js',
   '/study/js/cardview.js',
   '/study/js/views/home.js',
   '/study/js/views/drill.js',

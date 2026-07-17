@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="light" data-size="m">
+<html lang="en" data-theme="light" data-spacing="normal">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -14,13 +14,17 @@
   <meta name="apple-mobile-web-app-title" content="Bar Rules">
   <link rel="stylesheet" href="/study/css/styles.css">
   <script>
-    // Paint the right theme before first render (no flash).
+    // Paint the right theme / text scale / spacing before first render (no flash).
     (function () {
       try {
+        var d = document.documentElement;
         var s = localStorage.getItem('barrules.theme-hint');
-        var mode = s || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        document.documentElement.dataset.theme = mode;
-      } catch (e) { /* default stands */ }
+        d.dataset.theme = s || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        var a = JSON.parse(localStorage.getItem('barrules.appearance-hint') || '{}');
+        if (a.txt) d.style.setProperty('--txt', a.txt);
+        if (a.spacing) d.dataset.spacing = a.spacing;
+        if (a.bionic) d.dataset.bionic = '';
+      } catch (e) { /* defaults stand */ }
     })();
   </script>
 </head>
